@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Rekha Garments",
+  "description": "Premium Women\u0027s Clothing and 1-Gram Jewellery Boutique with integrated real-time Admin Management Dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
