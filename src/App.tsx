@@ -761,10 +761,12 @@ export default function App() {
       {/* 6. PRODUCT QUICK VIEW MODAL DETAIL */}
       {selectedProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl border border-ivory-dark flex flex-col md:flex-row max-h-[85vh]">
+          <div className="relative bg-white w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl border border-ivory-dark flex flex-col md:flex-row max-h-[85vh]">
             <button 
               onClick={() => setSelectedProduct(null)} 
-              className="absolute md:relative top-4 right-4 md:top-auto md:right-auto bg-white/90 hover:bg-white text-gray-500 p-2 rounded-full cursor-pointer md:hidden z-10"
+              className="absolute top-4 right-4 bg-white/95 hover:bg-white text-gray-700 p-2 rounded-full cursor-pointer z-50 transition-all shadow-md border border-gray-200/60 hover:scale-105 active:scale-95"
+              title="Close"
+              id="close-product-modal-btn"
             >
               <X className="w-5 h-5" />
             </button>
@@ -951,8 +953,12 @@ export default function App() {
           <div className="space-y-3">
             <h4 className="text-xs uppercase tracking-wider text-gold-champagne font-bold">Contact & Alarms</h4>
             <p className="text-xs text-white/70 leading-relaxed">
-              Customer support lines verified under Supabase PostgreSQL and SMS alerts. For assistance, reach out at info@rekhagarments.com.
+              Customer support lines verified under Supabase PostgreSQL and SMS alerts. For assistance, reach out at <a href="mailto:karthikjadhav2007@gmail.com" className="text-gold-champagne hover:underline">karthikjadhav2007@gmail.com</a>.
             </p>
+            <div className="text-xs text-white/70 space-y-1 mt-1">
+              <p>📞 WhatsApp: <a href="https://wa.me/918197980187" target="_blank" rel="noopener noreferrer" className="text-gold-champagne hover:underline">+91 81979 80187</a></p>
+              <p>📞 Alternative Line: <a href="tel:+919480951450" className="text-gold-champagne hover:underline">+91 94809 51450</a></p>
+            </div>
           </div>
         </div>
         <p className="text-center text-xs text-white/50 pt-5">
