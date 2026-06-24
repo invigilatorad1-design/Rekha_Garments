@@ -18,7 +18,8 @@ import {
   RotateCcw,
   Star,
   Eye,
-  AlertCircle
+  AlertCircle,
+  MessageCircle
 } from 'lucide-react';
 
 import { 
@@ -42,6 +43,7 @@ import CartDrawer from './components/CartDrawer';
 import AuthModal from './components/AuthModal';
 import CheckoutModal from './components/CheckoutModal';
 import AdminPanel from './components/AdminPanel';
+import FloatingCartWishlist from './components/FloatingCartWishlist';
 
 export default function App() {
   // Database States
@@ -421,7 +423,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col justify-between" id="customer-shop-root">
-      {/* 1. STICKY HEADER */}
+      {/* 1. SCROLLABLE HEADER */}
       <CustomerHeader
         currentUser={currentUser}
         onOpenAuth={() => setIsAuthOpen(true)}
@@ -438,6 +440,14 @@ export default function App() {
           setIsAdmin(!isAdmin);
           triggerToast(`System Admin Access is now ${!isAdmin ? 'Enabled (Check header button!)' : 'Disabled'}.`);
         }}
+      />
+
+      {/* Floating Cart & Wishlist Trigger (Pops up when scrolling stops or scrolling up) */}
+      <FloatingCartWishlist
+        onOpenCart={() => setIsCartOpen(true)}
+        onOpenWishlist={() => setIsWishlistOpen(true)}
+        wishlistCount={wishlist.length}
+        cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
       />
 
       {/* Real-time system toast */}
@@ -770,6 +780,18 @@ export default function App() {
               <span className="absolute top-4 left-4 bg-emerald-luxury text-gold-champagne text-[9px] uppercase tracking-widest px-3 py-1 rounded font-bold font-sans">
                 {selectedProduct.category === 'garments' ? "Pure Silk" : "1-Gram Antique"}
               </span>
+
+              {/* Floating Enquire on WhatsApp Button */}
+              <a
+                href={`https://wa.me/918197980187?text=${encodeURIComponent(`Hello Rekha Garments, I would like to enquire about the product: ${selectedProduct.name}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute bottom-4 right-4 bg-[#25D366] hover:bg-[#128C7E] text-white text-[10px] font-bold uppercase tracking-wider px-3 py-2 rounded-full shadow-lg flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 z-10 border border-white/20"
+                id="whatsapp-product-enquiry"
+              >
+                <MessageCircle className="w-4 h-4 fill-white text-[#25D366]" />
+                <span>Enquire on WhatsApp</span>
+              </a>
             </div>
 
             {/* Right info stage */}
@@ -907,10 +929,23 @@ export default function App() {
           </div>
           <div className="space-y-3">
             <h4 className="text-xs uppercase tracking-wider text-gold-champagne font-bold">Secure Boutiques</h4>
-            <ul className="space-y-1.5 text-xs text-white/75">
-              <li>📍 Bangalore Flagship Showroom</li>
-              <li>🛡️ Insured Transit Guarantee</li>
-              <li>⭐ 100% Customer Satisfaction</li>
+            <ul className="space-y-2 text-xs text-white/75">
+              <li className="flex items-start gap-2">
+                <span>📍</span>
+                <span>Hospet Flagship Home Shop</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span>🛡️</span>
+                <span>Insured Transit Guarantee</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span>⭐</span>
+                <span>100% Customer Satisfaction</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span>🏆</span>
+                <span>Since 10+ years in Hospet Home Shop Business</span>
+              </li>
             </ul>
           </div>
           <div className="space-y-3">

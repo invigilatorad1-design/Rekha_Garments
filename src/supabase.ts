@@ -207,11 +207,11 @@ export async function dbCreateOrder(o: Partial<Order>): Promise<Order> {
   return res.json();
 }
 
-export async function dbUpdateOrderStatus(orderId: string, status: string, timeline: any[]): Promise<Order> {
+export async function dbUpdateOrderStatus(orderId: string, status: string, timelineOrNote: any): Promise<Order> {
   const res = await fetch(`/api/orders/${orderId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status, timeline })
+    body: JSON.stringify({ status, timeline: timelineOrNote })
   });
   if (!res.ok) {
     const err = await res.json();

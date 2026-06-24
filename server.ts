@@ -4,6 +4,7 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import fs from "fs";
+import { execSync } from "child_process";
 
 // Load environment variables
 dotenv.config();
@@ -33,6 +34,15 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Sync database schema on startup to ensure tables exist in production
+  try {
+    console.log("Synchronizing database schema via drizzle-kit push...");
+    execSync("npx drizzle-kit push --config=src/db/drizzle.config.ts", { stdio: "inherit" });
+    console.log("Database schema synchronized successfully.");
+  } catch (err) {
+    console.error("Database schema synchronization failed:", err);
+  }
+
   // Initialize the database with default products and coupons
   try {
     await initLocalDatabase();
@@ -47,6 +57,41 @@ async function startServer() {
   // API Config route
   app.get("/api/config", (req, res) => {
     res.json({ isRealSupabaseConfigured });
+  });
+
+  // Database Diagnostics Route
+  app.get("/api/db-test", async (req, res) => {
+    const config = {
+      SQL_HOST: process.env.SQL_HOST,
+      SQL_USER: process.env.SQL_USER,
+      SQL_DB_NAME: process.env.SQL_DB_NAME,
+      SQL_ADMIN_USER: process.env.SQL_ADMIN_USER,
+      HAS_PASSWORD: !!process.env.SQL_PASSWORD,
+      HAS_ADMIN_PASSWORD: !!process.env.SQL_ADMIN_PASSWORD,
+      NODE_ENV: process.env.NODE_ENV,
+    };
+
+    try {
+      const { db } = await import("./src/db/index.ts");
+      const { sql } = await import("drizzle-orm");
+      const result = await db.execute(sql`SELECT 1 as connected`);
+      res.json({
+        success: true,
+        message: "Database connected successfully!",
+        config,
+        result: result.rows,
+      });
+    } catch (err: any) {
+      console.error("Database connection diagnostics failed:", err);
+      res.status(500).json({
+        success: false,
+        message: "Database connection failed",
+        config,
+        error: err.message || String(err),
+        stack: err.stack,
+        cause: err.cause ? (err.cause.message || String(err.cause)) : null,
+      });
+    }
   });
 
   // Products routes

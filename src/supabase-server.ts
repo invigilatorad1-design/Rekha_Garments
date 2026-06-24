@@ -389,24 +389,37 @@ export async function dbRegisterOrUpdateCustomer(id: string, fullName: string, m
 export async function dbGetOrders(): Promise<Order[]> {
   try {
     const data = await db.select().from(orders);
-    return data.map(o => ({
-      id: o.id,
-      customerId: o.customerId || 'anon',
-      customerName: o.customerName || 'Anonymous Customer',
-      customerMobile: o.customerMobile || '',
-      items: (o.items || []) as OrderItem[],
-      subtotal: o.subtotal,
-      discount: o.discount,
-      tax: o.tax,
-      shipping: o.shipping,
-      total: o.total,
-      couponApplied: o.couponApplied || null,
-      status: o.status as any,
-      shippingAddress: o.shippingAddress as any,
-      paymentStatus: o.paymentStatus as any,
-      orderDate: o.orderDate,
-      timeline: (o.timeline || []) as any[]
-    }));
+    return data.map(o => {
+      let timelineArr: any[] = [];
+      if (Array.isArray(o.timeline)) {
+        timelineArr = o.timeline;
+      } else if (typeof o.timeline === 'string') {
+        try {
+          const parsed = JSON.parse(o.timeline);
+          if (Array.isArray(parsed)) {
+            timelineArr = parsed;
+          }
+        } catch (e) {}
+      }
+      return {
+        id: o.id,
+        customerId: o.customerId || 'anon',
+        customerName: o.customerName || 'Anonymous Customer',
+        customerMobile: o.customerMobile || '',
+        items: (o.items || []) as OrderItem[],
+        subtotal: o.subtotal,
+        discount: o.discount,
+        tax: o.tax,
+        shipping: o.shipping,
+        total: o.total,
+        couponApplied: o.couponApplied || null,
+        status: o.status as any,
+        shippingAddress: o.shippingAddress as any,
+        paymentStatus: o.paymentStatus as any,
+        orderDate: o.orderDate,
+        timeline: timelineArr
+      };
+    });
   } catch (error) {
     console.error('Failed to get orders:', error);
     throw new Error('Failed to fetch orders', { cause: error });
@@ -515,11 +528,52 @@ export async function dbCreateOrder(o: Partial<Order>): Promise<Order> {
   }
 }
 
-export async function dbUpdateOrderStatus(orderId: string, status: string, timeline: any[]): Promise<Order> {
+export async function dbUpdateOrderStatus(orderId: string, status: string, timelineOrNote: any): Promise<Order> {
   try {
+    const existingOrders = await db.select().from(orders).where(eq(orders.id, orderId));
+    if (existingOrders.length === 0) {
+      throw new Error('Order not found');
+    }
+    const order = existingOrders[0];
+    
+    let currentTimeline: any[] = [];
+    if (Array.isArray(order.timeline)) {
+      currentTimeline = order.timeline;
+    } else if (typeof order.timeline === 'string') {
+      try {
+        const parsed = JSON.parse(order.timeline);
+        if (Array.isArray(parsed)) {
+          currentTimeline = parsed;
+        }
+      } catch (e) {}
+    }
+
+    let finalTimeline: any[] = [];
+    if (Array.isArray(timelineOrNote)) {
+      finalTimeline = timelineOrNote;
+    } else if (typeof timelineOrNote === 'string') {
+      finalTimeline = [
+        ...currentTimeline,
+        {
+          status,
+          timestamp: new Date().toISOString(),
+          note: timelineOrNote
+        }
+      ];
+    } else {
+      finalTimeline = [
+        ...currentTimeline,
+        {
+          status,
+          timestamp: new Date().toISOString(),
+          note: `Status updated to ${status}.`
+        }
+      ];
+    }
+
     await db.update(orders).set({
       status,
-      timeline
+      timeline: finalTimeline
     }).where(eq(orders.id, orderId));
 
     const ords = await dbGetOrders();

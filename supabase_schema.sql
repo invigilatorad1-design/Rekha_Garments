@@ -43,7 +43,18 @@ CREATE TABLE IF NOT EXISTS public.products (
 
 -- Enable RLS & Policies
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow public read-write for all" ON public.products FOR ALL USING (true) WITH CHECK (true);
+
+-- 1. Allow any public/anonymous user to read products
+CREATE POLICY "Allow public read access" ON public.products FOR SELECT USING (true);
+
+-- 2. Allow authenticated admin users and the service_role to insert products
+CREATE POLICY "Allow admin insert" ON public.products FOR INSERT TO authenticated, service_role WITH CHECK (true);
+
+-- 3. Allow authenticated admin users and the service_role to update products
+CREATE POLICY "Allow admin update" ON public.products FOR UPDATE TO authenticated, service_role USING (true) WITH CHECK (true);
+
+-- 4. Allow authenticated admin users and the service_role to delete products
+CREATE POLICY "Allow admin delete" ON public.products FOR DELETE TO authenticated, service_role USING (true);
 
 -- 3. COUPONS TABLE
 CREATE TABLE IF NOT EXISTS public.coupons (
@@ -59,7 +70,18 @@ CREATE TABLE IF NOT EXISTS public.coupons (
 
 -- Enable RLS & Policies
 ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow public read-write for all" ON public.coupons FOR ALL USING (true) WITH CHECK (true);
+
+-- 1. Allow any public/anonymous user to read coupons
+CREATE POLICY "Allow public read access" ON public.coupons FOR SELECT USING (true);
+
+-- 2. Allow authenticated admin users and the service_role to insert coupons
+CREATE POLICY "Allow admin insert" ON public.coupons FOR INSERT TO authenticated, service_role WITH CHECK (true);
+
+-- 3. Allow authenticated admin users and the service_role to update coupons
+CREATE POLICY "Allow admin update" ON public.coupons FOR UPDATE TO authenticated, service_role USING (true) WITH CHECK (true);
+
+-- 4. Allow authenticated admin users and the service_role to delete coupons
+CREATE POLICY "Allow admin delete" ON public.coupons FOR DELETE TO authenticated, service_role USING (true);
 
 -- 4. ORDERS TABLE
 CREATE TABLE IF NOT EXISTS public.orders (

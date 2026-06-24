@@ -5,7 +5,8 @@
  */
 
 import React, { useState } from 'react';
-import { Search, Filter, ClipboardList, Clock, Truck, CheckCircle2, XCircle, ArrowRight, X, Edit2, AlertCircle } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Search, Filter, ClipboardList, Clock, Truck, CheckCircle2, XCircle, ArrowRight, X, Edit2, AlertCircle, Printer } from 'lucide-react';
 import { Order, OrderItem } from '../types';
 import { dbUpdateOrderStatus } from '../supabase';
 
@@ -21,6 +22,7 @@ export default function OrderManager({ orders, onRefresh }: OrderManagerProps) {
   const [timelineNote, setTimelineNote] = useState('');
   const [updating, setUpdating] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
+  const [tempStatus, setTempStatus] = useState<Order['status'] | null>(null);
 
   // Filter orders
   const filteredOrders = orders.filter((o) => {
@@ -46,6 +48,7 @@ export default function OrderManager({ orders, onRefresh }: OrderManagerProps) {
       // Refresh currently selected order modal
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder(updatedOrder);
+        setTempStatus(updatedOrder.status);
       }
       setTimeout(() => setSuccess(null), 4000);
     } catch (err: any) {
@@ -53,6 +56,11 @@ export default function OrderManager({ orders, onRefresh }: OrderManagerProps) {
     } finally {
       setUpdating(false);
     }
+  };
+
+  const handlePrintInvoice = () => {
+    if (!selectedOrder) return;
+    window.print();
   };
 
   return (
@@ -185,6 +193,7 @@ export default function OrderManager({ orders, onRefresh }: OrderManagerProps) {
                         <button
                           onClick={() => {
                             setTimelineNote('');
+                            setTempStatus(o.status);
                             setSelectedOrder(o);
                           }}
                           className="bg-emerald-luxury/5 hover:bg-emerald-luxury/10 border border-emerald-luxury/20 text-emerald-luxury text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded cursor-pointer flex items-center gap-1 mx-auto"
@@ -296,13 +305,13 @@ export default function OrderManager({ orders, onRefresh }: OrderManagerProps) {
                 </div>
               </div>
 
-              {/* ORDER STATUS TIMELINE HISTORY LOGS */}
+               {/* ORDER STATUS TIMELINE HISTORY LOGS */}
               <div className="space-y-4">
                 <h4 className="font-serif text-sm font-bold text-gray-800 border-b pb-1">Order Transit Timeline</h4>
                 
                 {/* Visual Stepper Timeline */}
                 <div className="relative pl-6 space-y-4 border-l-2 border-emerald-luxury/20 ml-2">
-                  {selectedOrder.timeline.map((tl, idx) => (
+                  {(selectedOrder.timeline || []).map((tl, idx) => (
                     <div key={idx} className="relative">
                       {/* Node Indicator */}
                       <span className="absolute -left-[31px] top-1 bg-emerald-luxury text-gold-champagne w-5 h-5 rounded-full border border-gold-champagne/45 flex items-center justify-center font-mono text-[9px] font-bold">
@@ -335,53 +344,44 @@ export default function OrderManager({ orders, onRefresh }: OrderManagerProps) {
                     <span>Administrator Timeline Transit Update</span>
                   </p>
 
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      placeholder="Add specific details (e.g. Dispatched via BlueDart AWB #92401)"
-                      value={timelineNote}
-                      onChange={(e) => setTimelineNote(e.target.value)}
-                      className="w-full px-3 py-2 border rounded bg-white text-xs text-gray-800"
-                    />
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Target Order Status</label>
+                        <select
+                          id="admin-status-select"
+                          value={tempStatus || selectedOrder.status}
+                          onChange={(e) => setTempStatus(e.target.value as Order['status'])}
+                          className="w-full px-3 py-2 border rounded-lg bg-white text-xs text-gray-800 focus:outline-none focus:border-emerald-luxury font-medium"
+                        >
+                          <option value="Pending">Pending Verification</option>
+                          <option value="Processing">Processing / Packing</option>
+                          <option value="Shipped">In-Transit / Shipped</option>
+                          <option value="Delivered">Delivered Successful</option>
+                          <option value="Cancelled">Cancelled / Terminated</option>
+                        </select>
+                      </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      {selectedOrder.status === 'Pending' && (
-                        <button
-                          type="button"
-                          disabled={updating}
-                          onClick={() => handleUpdateStatus(selectedOrder.id, 'Processing')}
-                          className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded text-[10px] uppercase tracking-wider font-semibold cursor-pointer"
-                        >
-                          Mark as Processing
-                        </button>
-                      )}
-                      {selectedOrder.status === 'Processing' && (
-                        <button
-                          type="button"
-                          disabled={updating}
-                          onClick={() => handleUpdateStatus(selectedOrder.id, 'Shipped')}
-                          className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded text-[10px] uppercase tracking-wider font-semibold cursor-pointer"
-                        >
-                          Mark as Shipped
-                        </button>
-                      )}
-                      {selectedOrder.status === 'Shipped' && (
-                        <button
-                          type="button"
-                          disabled={updating}
-                          onClick={() => handleUpdateStatus(selectedOrder.id, 'Delivered')}
-                          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-[10px] uppercase tracking-wider font-semibold cursor-pointer"
-                        >
-                          Mark as Delivered
-                        </button>
-                      )}
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Log Detail Note</label>
+                        <input
+                          type="text"
+                          placeholder={`e.g. Order moved to ${tempStatus || selectedOrder.status}`}
+                          value={timelineNote}
+                          onChange={(e) => setTimelineNote(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-lg bg-white text-xs text-gray-800 focus:outline-none focus:border-emerald-luxury"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-1">
                       <button
                         type="button"
                         disabled={updating}
-                        onClick={() => handleUpdateStatus(selectedOrder.id, 'Cancelled')}
-                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded text-[10px] uppercase tracking-wider font-semibold cursor-pointer ml-auto"
+                        onClick={() => handleUpdateStatus(selectedOrder.id, tempStatus || selectedOrder.status)}
+                        className="bg-emerald-luxury hover:bg-emerald-deep text-gold-champagne px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-all shadow-sm font-sans"
                       >
-                        Cancel Order
+                        {updating ? 'Updating...' : 'Apply Status Change'}
                       </button>
                     </div>
                   </div>
@@ -390,7 +390,14 @@ export default function OrderManager({ orders, onRefresh }: OrderManagerProps) {
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-ivory border-t flex justify-end">
+            <div className="p-4 bg-ivory border-t flex justify-end gap-3">
+              <button
+                onClick={handlePrintInvoice}
+                className="px-5 py-2 bg-white hover:bg-ivory border border-emerald-luxury/30 text-emerald-luxury rounded-lg text-xs font-bold uppercase tracking-widest cursor-pointer flex items-center gap-2 transition-all shadow-xs"
+              >
+                <Printer className="w-4 h-4" />
+                Print Invoice
+              </button>
               <button
                 onClick={() => setSelectedOrder(null)}
                 className="px-5 py-2 bg-emerald-luxury hover:bg-emerald-light text-gold-champagne rounded-lg text-xs font-bold uppercase tracking-widest cursor-pointer"
@@ -400,6 +407,126 @@ export default function OrderManager({ orders, onRefresh }: OrderManagerProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {selectedOrder && createPortal(
+        <div id="printable-invoice-area" className="bg-white text-gray-900 p-8 font-sans leading-relaxed">
+          {/* Header */}
+          <div className="flex justify-between items-start border-b-2 border-emerald-luxury pb-6 mb-8">
+            <div>
+              <h1 className="font-serif text-3xl font-bold text-emerald-luxury tracking-wide uppercase">REKHA GARMENTS</h1>
+              <p className="text-[10px] tracking-wider text-gray-600 uppercase font-medium mt-1">Women's Apparel & 1-Gram Jewellery</p>
+              <p className="text-xs text-gray-600 mt-2 font-medium">📍 Hospet Flagship Home Shop, Hospet</p>
+            </div>
+            <div className="text-right">
+              <h2 className="font-serif text-4xl font-bold text-emerald-luxury tracking-wide">INVOICE</h2>
+              <div className="text-xs text-gray-600 mt-3 space-y-1">
+                <p><strong>Invoice Number:</strong> {selectedOrder.id}</p>
+                <p><strong>Date:</strong> {new Date(selectedOrder.orderDate).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p><strong>Status:</strong> <span className="text-emerald-luxury font-bold">PAID (Secure Gate)</span></p>
+              </div>
+            </div>
+          </div>
+
+          {/* Details */}
+          <div className="grid grid-cols-2 gap-8 mb-8">
+            <div className="border border-gray-200 rounded-xl p-5 bg-gray-50/50">
+              <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Customer Dossier</h3>
+              <p className="font-serif text-base font-bold text-gray-900">{selectedOrder.customerName}</p>
+              <p className="text-xs text-gray-600 mt-1">Phone: +91 {selectedOrder.customerMobile}</p>
+              <p className="text-[10px] text-gray-500 font-mono mt-2">ID: {selectedOrder.customerId}</p>
+            </div>
+            <div className="border border-gray-200 rounded-xl p-5 bg-gray-50/50">
+              <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Insured Shipping Destination</h3>
+              <p className="font-serif text-base font-bold text-gray-900">{selectedOrder.shippingAddress.fullName}</p>
+              <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                {selectedOrder.shippingAddress.addressLine}<br />
+                {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} - <strong>{selectedOrder.shippingAddress.pinCode}</strong>
+              </p>
+            </div>
+          </div>
+
+          {/* Items */}
+          <table className="w-full border-collapse mb-8 text-xs">
+            <thead>
+              <tr className="bg-emerald-luxury text-gold-champagne text-[10px] uppercase tracking-wider font-semibold">
+                <th className="p-3 text-left rounded-l-lg text-gold-champagne">Item Description</th>
+                <th className="p-3 text-center text-gold-champagne">Qty</th>
+                <th className="p-3 text-right text-gold-champagne">Unit Price</th>
+                <th className="p-3 text-right rounded-r-lg text-gold-champagne">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {selectedOrder.items.map((it, idx) => (
+                <tr key={idx} className="hover:bg-gray-50/30">
+                  <td className="p-3">
+                    <p className="font-bold font-serif text-gray-900 text-sm">{it.name}</p>
+                    {it.selectedSize && (
+                      <p className="text-[10px] text-amber-700 font-mono mt-0.5">Size: {it.selectedSize}</p>
+                    )}
+                  </td>
+                  <td className="p-3 text-center font-semibold">{it.quantity}</td>
+                  <td className="p-3 text-right">₹{it.price.toLocaleString('en-IN')}</td>
+                  <td className="p-3 text-right font-bold text-gray-900">₹{(it.price * it.quantity).toLocaleString('en-IN')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Totals */}
+          <div className="w-80 ml-auto border-t border-gray-200 pt-4 mb-10 text-xs space-y-2">
+            <div className="flex justify-between text-gray-600">
+              <span>Item Subtotal:</span>
+              <span>₹{selectedOrder.subtotal.toLocaleString('en-IN')}</span>
+            </div>
+            {selectedOrder.discount > 0 && (
+              <div className="flex justify-between text-amber-700 font-semibold">
+                <span>Loyalty Discount ({selectedOrder.couponApplied || 'DIRECT'}):</span>
+                <span>-₹{selectedOrder.discount.toLocaleString('en-IN')}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-gray-600">
+              <span>GST Integrated Tax (5%):</span>
+              <span>₹{selectedOrder.tax.toLocaleString('en-IN')}</span>
+            </div>
+            <div className="flex justify-between text-gray-600">
+              <span>Insured Courier & Packaging:</span>
+              <span>₹{selectedOrder.shipping.toLocaleString('en-IN')}</span>
+            </div>
+            <div className="flex justify-between font-bold text-sm text-emerald-luxury border-t border-emerald-luxury pt-3 mt-2">
+              <span>Grand Paid Total:</span>
+              <span>₹{selectedOrder.total.toLocaleString('en-IN')}</span>
+            </div>
+          </div>
+
+          {/* Logs */}
+          <div className="page-break-inside-avoid">
+            <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Order Audit & Transit Log</h3>
+            <div className="border border-gray-200 rounded-xl p-5 bg-gray-50/50 space-y-4">
+              {(selectedOrder.timeline || []).map((tl, idx) => (
+                <div key={idx} className="text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-[9px] uppercase tracking-wider bg-emerald-luxury/5 border border-emerald-luxury/10 text-emerald-luxury px-2 py-0.5 rounded font-mono">
+                      {tl.status}
+                    </span>
+                    <span className="text-gray-400 text-[10px] font-mono">
+                      {new Date(tl.timestamp).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })} at {new Date(tl.timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <p className="text-gray-600 italic mt-1 pl-1">"{tl.note}"</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="text-center mt-12 border-t border-gray-100 pt-6 text-gray-400 text-[10px] leading-relaxed">
+            <p className="font-semibold text-gray-600 text-xs">Thank you for choosing Rekha Garments</p>
+            <p className="mt-1">Exquisite Handcrafted Sarees, Lehengas, & 1-Gram Gold Temple Jewellery</p>
+            <p className="font-mono mt-3 text-[9px]">This is a computer-generated proof of sales. Since 10+ years in Hospet Home Shop Business.</p>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

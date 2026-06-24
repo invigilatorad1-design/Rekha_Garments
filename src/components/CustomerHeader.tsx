@@ -37,7 +37,7 @@ export default function CustomerHeader({
   onToggleAdmin,
 }: CustomerHeaderProps) {
   return (
-    <header className="sticky top-0 z-40 bg-emerald-luxury text-white shadow-md">
+    <header className="relative z-40 bg-emerald-luxury text-white shadow-md">
       {/* Top Banner */}
       <div className="bg-emerald-deep text-center py-1.5 text-xs tracking-widest text-gold-champagne font-medium border-b border-emerald-luxury/30 px-4 flex justify-between items-center max-w-7xl mx-auto">
         <span>✨ FESTIVAL SPECIAL: FLAT 15% OFF ON JEWELLERY (CODE: REKHA15) ✨</span>

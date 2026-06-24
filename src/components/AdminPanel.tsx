@@ -17,7 +17,13 @@ import {
   X, 
   Sparkles, 
   CheckCircle,
-  HelpCircle
+  HelpCircle,
+  AlertTriangle,
+  Check,
+  ExternalLink,
+  Database,
+  Info,
+  Copy
 } from 'lucide-react';
 
 import { Product, Order, User, Notification } from '../types';
@@ -51,6 +57,46 @@ export default function AdminPanel({
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [readNotifIds, setReadNotifIds] = useState<string[]>([]);
+
+  // Database Diagnostics States
+  const [dbStatus, setDbStatus] = useState<{
+    status: 'checking' | 'connected' | 'failed';
+    error?: string;
+    config?: any;
+  }>({ status: 'checking' });
+  const [showFixGuide, setShowFixGuide] = useState(false);
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  const checkDbStatus = async () => {
+    try {
+      const res = await fetch('/api/db-test');
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setDbStatus({ status: 'connected', config: data.config });
+      } else {
+        setDbStatus({
+          status: 'failed',
+          error: data.error || 'Connection failed',
+          config: data.config
+        });
+      }
+    } catch (err: any) {
+      setDbStatus({
+        status: 'failed',
+        error: err.message || String(err)
+      });
+    }
+  };
+
+  useEffect(() => {
+    checkDbStatus();
+  }, []);
+
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedText(label);
+    setTimeout(() => setCopiedText(null), 2000);
+  };
 
   // Mark notification as read helper
   const handleMarkAsRead = (id: string) => {
@@ -223,9 +269,32 @@ export default function AdminPanel({
 
           {/* Right Header Actions */}
           <div className="flex items-center gap-4">
+            {/* Database status indicator */}
+            {dbStatus.status === 'connected' ? (
+              <span className="hidden md:inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-200">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                <span>DB Online</span>
+              </span>
+            ) : dbStatus.status === 'failed' ? (
+              <button
+                onClick={() => setShowFixGuide(true)}
+                className="hidden md:inline-flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-700 text-[10px] font-bold px-2.5 py-1 rounded-full border border-red-200 cursor-pointer transition-colors animate-bounce"
+              >
+                <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span>
+                <span>DB Offline (Fix Guide)</span>
+              </button>
+            ) : (
+              <span className="hidden md:inline-flex items-center gap-1.5 bg-gray-50 text-gray-400 text-[10px] font-medium px-2.5 py-1 rounded-full border border-gray-200">
+                <span>Checking DB...</span>
+              </span>
+            )}
+
             {/* Real-time sync reload */}
             <button
-              onClick={onRefreshAll}
+              onClick={() => {
+                checkDbStatus();
+                onRefreshAll();
+              }}
               className="p-1.5 hover:bg-ivory rounded-full text-gray-500 hover:text-emerald-luxury transition-colors cursor-pointer"
               title="Synchronize Database"
               id="admin-sync-btn"
@@ -299,6 +368,30 @@ export default function AdminPanel({
 
         {/* Tab workspace content */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8">
+          {dbStatus.status === 'failed' && (
+            <div className="mb-6 bg-red-50 border-l-4 border-red-600 rounded-xl p-4 md:p-5 shadow-sm text-gray-800 font-sans animate-fade-in flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="flex gap-3 items-start">
+                <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5 animate-pulse" />
+                <div>
+                  <h3 className="font-bold text-red-900 text-sm">Database Connection Error (Production Setup Required)</h3>
+                  <p className="text-xs text-red-700 mt-1 leading-relaxed">
+                    This website was successfully published to Cloud Run, but it is currently unable to communicate with your Google Cloud SQL database. This is expected until you configure the database link in Cloud Run.
+                  </p>
+                  <p className="text-[11px] text-gray-500 mt-2 font-mono break-all">
+                    Error logged: {dbStatus.error}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowFixGuide(true)}
+                className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-sm hover:shadow transition-all shrink-0 cursor-pointer flex items-center gap-1.5"
+              >
+                <HelpCircle className="w-4 h-4" />
+                <span>Fix in Google Cloud (4 Steps)</span>
+              </button>
+            </div>
+          )}
+
           {activeTab === 'insights' && (
             <AnalyticsDashboard orders={orders} products={products} users={users} />
           )}
@@ -319,6 +412,156 @@ export default function AdminPanel({
             <SettingsManager onRefresh={onRefreshAll} />
           )}
         </div>
+
+        {/* Database setup instructions modal */}
+        {showFixGuide && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 md:p-6 z-[100] animate-fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden max-h-[90vh] flex flex-col font-sans border border-ivory-dark">
+              {/* Header */}
+              <div className="bg-emerald-luxury text-white px-6 py-5 flex justify-between items-center shrink-0 border-b border-gold-champagne/25">
+                <div className="flex items-center gap-2.5">
+                  <Database className="w-5 h-5 text-gold-champagne" />
+                  <div>
+                    <h3 className="font-serif text-lg font-bold tracking-wide">Google Cloud Run Connection Guide</h3>
+                    <p className="text-[10px] text-white/70 uppercase tracking-widest font-sans mt-0.5">Restore Cloud SQL Access in 4 Steps</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowFixGuide(false)}
+                  className="p-1.5 hover:bg-white/10 rounded-full text-white/80 hover:text-white transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 text-sm text-gray-700 leading-relaxed">
+                <div className="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4 text-xs text-amber-950">
+                  <span className="font-bold">Why did this happen?</span> When running locally inside Google AI Studio, a special secure DB proxy maps automatically. However, when you publish the application to your own production Cloud Run container (<code className="font-mono bg-amber-100 px-1 py-0.5 rounded">rekha-garments</code>), Google Cloud isolates it by default. You just need to tell Cloud Run to connect to your SQL instance.
+                </div>
+
+                <div className="space-y-6">
+                  {/* Step 1 */}
+                  <div className="relative pl-8">
+                    <span className="absolute left-0 top-0 w-6 h-6 rounded-full bg-emerald-luxury text-gold-champagne font-bold text-xs flex items-center justify-center">1</span>
+                    <h4 className="font-bold text-gray-900">Link your Cloud SQL to Cloud Run</h4>
+                    <p className="text-xs text-gray-500 mt-1">
+                      This mounts the secure Unix domain socket directory on your container.
+                    </p>
+                    <ol className="list-decimal ml-4 mt-2 text-xs text-gray-600 space-y-1">
+                      <li>Go to the <a href="https://console.cloud.google.com/run" target="_blank" rel="noreferrer" className="text-emerald-700 underline font-bold inline-flex items-center gap-0.5">Google Cloud Run Console <ExternalLink className="w-3 h-3" /></a>.</li>
+                      <li>Select your service: <span className="font-semibold text-gray-800">rekha-garments</span>.</li>
+                      <li>Click <span className="font-semibold text-gray-800">Edit & Deploy New Revision</span>.</li>
+                      <li>Go to the <span className="font-semibold text-gray-800">Connections</span> tab, find <span className="font-semibold text-gray-800">Cloud SQL connections</span>, click <span className="font-semibold text-gray-800">Add Connection</span>, and select:</li>
+                    </ol>
+                    <div className="mt-3 flex items-center justify-between bg-ivory border border-ivory-dark rounded-lg p-2.5 font-mono text-xs text-gray-800">
+                      <span className="truncate break-all select-all">project-antigravity-x-deepstn:asia-southeast1:ai-studio-70f7cb01</span>
+                      <button 
+                        onClick={() => handleCopy('project-antigravity-x-deepstn:asia-southeast1:ai-studio-70f7cb01', 'sqlInstance')}
+                        className="p-1 hover:bg-ivory-dark rounded text-gray-500 hover:text-emerald-luxury shrink-0 ml-2"
+                        title="Copy to clipboard"
+                      >
+                        {copiedText === 'sqlInstance' ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Step 2 */}
+                  <div className="relative pl-8">
+                    <span className="absolute left-0 top-0 w-6 h-6 rounded-full bg-emerald-luxury text-gold-champagne font-bold text-xs flex items-center justify-center">2</span>
+                    <h4 className="font-bold text-gray-900">Set Environment Variables in Cloud Run</h4>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Under the <span className="font-semibold text-gray-800">Variables & Secrets</span> tab, add the following variables so the application knows how to connect:
+                    </p>
+                    <div className="mt-3 overflow-hidden border rounded-lg divide-y text-xs">
+                      {/* SQL_HOST */}
+                      <div className="p-2.5 bg-white flex justify-between items-center gap-2">
+                        <div className="font-mono shrink-0 w-28 text-gray-500">SQL_HOST</div>
+                        <div className="font-mono text-gray-800 truncate select-all">/cloudsql/project-antigravity-x-deepstn:asia-southeast1:ai-studio-70f7cb01</div>
+                        <button 
+                          onClick={() => handleCopy('/cloudsql/project-antigravity-x-deepstn:asia-southeast1:ai-studio-70f7cb01', 'sqlHost')}
+                          className="p-1 hover:bg-ivory-dark rounded text-gray-400 hover:text-gray-700 shrink-0"
+                        >
+                          {copiedText === 'sqlHost' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                      {/* SQL_USER */}
+                      <div className="p-2.5 bg-ivory flex justify-between items-center gap-2">
+                        <div className="font-mono shrink-0 w-28 text-gray-500">SQL_USER</div>
+                        <div className="font-mono text-gray-800 truncate select-all">ai_studio_app_user</div>
+                        <button 
+                          onClick={() => handleCopy('ai_studio_app_user', 'sqlUser')}
+                          className="p-1 hover:bg-ivory-dark rounded text-gray-400 hover:text-gray-700 shrink-0"
+                        >
+                          {copiedText === 'sqlUser' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                      {/* SQL_DB_NAME */}
+                      <div className="p-2.5 bg-white flex justify-between items-center gap-2">
+                        <div className="font-mono shrink-0 w-28 text-gray-500">SQL_DB_NAME</div>
+                        <div className="font-mono text-gray-800 truncate select-all">cloud_sql_development_database</div>
+                        <button 
+                          onClick={() => handleCopy('cloud_sql_development_database', 'sqlDbName')}
+                          className="p-1 hover:bg-ivory-dark rounded text-gray-400 hover:text-gray-700 shrink-0"
+                        >
+                          {copiedText === 'sqlDbName' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                      {/* SQL_PASSWORD */}
+                      <div className="p-2.5 bg-ivory flex justify-between items-center gap-2">
+                        <div className="font-mono shrink-0 w-28 text-gray-500">SQL_PASSWORD</div>
+                        <div className="font-mono text-gray-800 italic">Enter your DB user password here</div>
+                        <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-semibold shrink-0">Required</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step 3 */}
+                  <div className="relative pl-8">
+                    <span className="absolute left-0 top-0 w-6 h-6 rounded-full bg-emerald-luxury text-gold-champagne font-bold text-xs flex items-center justify-center">3</span>
+                    <h4 className="font-bold text-gray-900">Grant IAM Service Account Permissions</h4>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Cloud Run needs permission to talk to the SQL database.
+                    </p>
+                    <ol className="list-decimal ml-4 mt-2 text-xs text-gray-600 space-y-1">
+                      <li>Go to the <a href="https://console.cloud.google.com/iam-admin/iam" target="_blank" rel="noreferrer" className="text-emerald-700 underline font-bold inline-flex items-center gap-0.5">Google Cloud IAM Console <ExternalLink className="w-3 h-3" /></a>.</li>
+                      <li>Find the Service Account used by your Cloud Run service (usually looks like <code className="font-mono bg-ivory px-1 rounded text-gray-800">your-project-number-compute@developer.gserviceaccount.com</code>).</li>
+                      <li>Click the **Edit** (Pencil) icon on that service account row.</li>
+                      <li>Click **Add Another Role**, search for <span className="font-semibold text-emerald-900 bg-emerald-50 px-1 py-0.5 rounded">Cloud SQL Client</span>, and select it.</li>
+                      <li>Click **Save** to apply the IAM permission immediately.</li>
+                    </ol>
+                  </div>
+
+                  {/* Step 4 */}
+                  <div className="relative pl-8">
+                    <span className="absolute left-0 top-0 w-6 h-6 rounded-full bg-emerald-luxury text-gold-champagne font-bold text-xs flex items-center justify-center">4</span>
+                    <h4 className="font-bold text-gray-900">Deploy!</h4>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Click the green **Deploy** button at the bottom of the Cloud Run Edit page.
+                    </p>
+                    <p className="text-xs text-gray-600 mt-2">
+                      When the new revision boots up, our backend will run schema synchronization automatically, build the tables, seed default products, and the coupons desk will be fully functional!
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="bg-ivory px-6 py-4 border-t border-ivory-dark flex justify-between items-center shrink-0">
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <Info className="w-4 h-4 text-emerald-luxury" />
+                  <span>Click sync reload <span className="font-bold">↻</span> after deploying.</span>
+                </div>
+                <button
+                  onClick={() => setShowFixGuide(false)}
+                  className="bg-emerald-luxury hover:bg-emerald-deep text-white text-xs font-bold px-5 py-2.5 rounded-xl cursor-pointer shadow-sm hover:shadow transition-all"
+                >
+                  I Understand, Let's Connect It
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <footer className="bg-white border-t border-ivory-dark py-4 text-center text-xs text-gray-400 font-sans shrink-0">

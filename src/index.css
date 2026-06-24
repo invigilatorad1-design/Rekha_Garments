@@ -43,3 +43,34 @@ body {
   background: #A4831B;
 }
 
+/* Print Invoice Styles */
+@media print {
+  /* Hide standard React mount root and overlays */
+  #root,
+  #customer-shop-root,
+  #admin-panel-root,
+  #floating-cart-wishlist,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Expose and format the print-specific container */
+  #printable-invoice-area {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    background-color: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 24px !important;
+  }
+}
+
+@media screen {
+  #printable-invoice-area {
+    display: none !important;
+  }
+}
+
