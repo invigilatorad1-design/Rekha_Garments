@@ -25,12 +25,21 @@ import {
   dbSignInWithOtp,
   dbVerifyOtp,
   dbSignOut,
-  isRealSupabaseConfigured
+  isRealSupabaseConfigured,
+  initLocalDatabase
 } from "./src/supabase-server";
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  // Initialize the database with default products and coupons
+  try {
+    await initLocalDatabase();
+    console.log("Database initialized and seeded successfully.");
+  } catch (err) {
+    console.error("Database initialization failed:", err);
+  }
 
   // Middleware
   app.use(express.json());
