@@ -43,6 +43,7 @@ import CartDrawer from './components/CartDrawer';
 import AuthModal from './components/AuthModal';
 import CheckoutModal from './components/CheckoutModal';
 import AdminPanel from './components/AdminPanel';
+import OrderViewer from './components/OrderViewer';
 import FloatingCartWishlist from './components/FloatingCartWishlist';
 
 export default function App() {
@@ -54,7 +55,7 @@ export default function App() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   // Navigation & Core States
-  const [currentRoute, setCurrentRoute] = useState<'shop' | 'admin'>('shop');
+  const [currentRoute, setCurrentRoute] = useState<'shop' | 'admin' | 'orders'>('shop');
   const [isAdmin, setIsAdmin] = useState(true); // Default enabled so they can access dashboard immediately
   const [activeCategory, setActiveCategory] = useState<'all' | 'garments' | 'jewellery'>('all');
 
@@ -433,13 +434,22 @@ export default function App() {
         wishlistCount={wishlist.length}
         cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
         activeCategory={activeCategory}
-        setActiveCategory={setActiveCategory}
+        setActiveCategory={(cat) => {
+          setActiveCategory(cat);
+          if (currentRoute !== 'shop') {
+            setCurrentRoute('shop');
+          }
+        }}
         onNavigateToAdmin={() => setCurrentRoute('admin')}
         isAdmin={isAdmin}
         onToggleAdmin={() => {
           setIsAdmin(!isAdmin);
           triggerToast(`System Admin Access is now ${!isAdmin ? 'Enabled (Check header button!)' : 'Disabled'}.`);
         }}
+        onNavigateToOrders={() => {
+          setCurrentRoute('orders');
+        }}
+        currentRoute={currentRoute}
       />
 
       {/* Floating Cart & Wishlist Trigger (Pops up when scrolling stops or scrolling up) */}
@@ -458,13 +468,25 @@ export default function App() {
         </div>
       )}
 
-      {/* 2. AUTO-SLIDING PREMIUM CAROUSEL */}
-      {activeCategory === 'all' && (
-        <HeroCarousel onCategorySelect={setActiveCategory} />
-      )}
+      {currentRoute === 'orders' ? (
+        <OrderViewer
+          orders={orders}
+          currentUser={currentUser}
+          onOpenAuth={() => setIsAuthOpen(true)}
+          onBackToShop={() => {
+            setCurrentRoute('shop');
+            setActiveCategory('all');
+          }}
+        />
+      ) : (
+        <>
+          {/* 2. AUTO-SLIDING PREMIUM CAROUSEL */}
+          {activeCategory === 'all' && (
+            <HeroCarousel onCategorySelect={setActiveCategory} />
+          )}
 
-      {/* 3. MAIN BOUTIQUE SECTION */}
-      <main className="max-w-7xl mx-auto px-4 md:px-8 py-8 flex-grow w-full">
+          {/* 3. MAIN BOUTIQUE SECTION */}
+          <main className="max-w-7xl mx-auto px-4 md:px-8 py-8 flex-grow w-full">
         
         {/* Dynamic header title */}
         <div className="text-center space-y-2 mb-8">
@@ -654,20 +676,26 @@ export default function App() {
           </div>
         </div>
       </main>
+    </>
+  )}
 
       {/* 4. ORDER RECEIPT CONFIRMATION POPUP */}
       {orderReceipt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
           <div className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-gold-champagne/30 animate-scale-up">
             <div className="bg-emerald-luxury text-center py-6 text-white px-6">
-              <CheckCircle className="w-12 h-12 text-gold-champagne mx-auto mb-2.5" />
-              <h3 className="font-serif text-lg md:text-xl font-bold text-gold-champagne">Order Confirmed Successfully!</h3>
+              <CheckCircle className="w-12 h-12 text-gold-champagne mx-auto mb-2.5 animate-bounce" />
+              <h3 className="font-serif text-lg md:text-xl font-bold text-gold-champagne">Order Placed Successfully!</h3>
               <p className="text-[10px] text-white/70 uppercase tracking-widest mt-1">Invoice ID: {orderReceipt.id}</p>
             </div>
 
             <div className="p-6 space-y-4 text-xs font-sans">
-              <p className="text-gray-600 text-center">
-                Thank you for shopping at <strong>Rekha Garments</strong>. Your order is secured on Supabase PostgreSQL and ready for processing.
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-xl text-center font-semibold text-[11px] animate-pulse">
+                Waiting for confirmation from Rekha Garments
+              </div>
+
+              <p className="text-gray-600 text-center leading-relaxed">
+                Thank you for shopping at <strong>Rekha Garments</strong>. Your order has been placed successfully...Waiting for confirmation from Rekha Garments. Once our administrators verify your UPI payment in the PhonePe statements, your order status will be fully confirmed.
               </p>
 
               <div className="bg-ivory border rounded-xl p-4 space-y-2 font-mono text-[11px]">
@@ -684,17 +712,28 @@ export default function App() {
                   <span className="text-gray-800 text-right truncate max-w-[200px]">{orderReceipt.shippingAddress.addressLine}</span>
                 </div>
                 <div className="flex justify-between border-t border-gray-200/50 pt-2 text-emerald-luxury font-bold">
-                  <span>Grand Total Paid</span>
+                  <span>Grand Total Invoice</span>
                   <span>₹{orderReceipt.total.toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
-              <button
-                onClick={() => setOrderReceipt(null)}
-                className="w-full bg-emerald-luxury hover:bg-emerald-light text-gold-champagne font-sans font-bold text-xs uppercase tracking-widest py-3 rounded-lg cursor-pointer"
-              >
-                Continue Shopping
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  onClick={() => {
+                    setOrderReceipt(null);
+                    setCurrentRoute('orders');
+                  }}
+                  className="flex-1 bg-gold-champagne hover:bg-gold-light text-emerald-luxury font-sans font-bold text-xs uppercase tracking-widest py-3 rounded-lg cursor-pointer text-center"
+                >
+                  Track Order Status
+                </button>
+                <button
+                  onClick={() => setOrderReceipt(null)}
+                  className="flex-1 bg-emerald-luxury hover:bg-emerald-light text-gold-champagne font-sans font-bold text-xs uppercase tracking-widest py-3 rounded-lg cursor-pointer"
+                >
+                  Continue Shopping
+                </button>
+              </div>
             </div>
           </div>
         </div>

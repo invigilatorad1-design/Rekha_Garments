@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, User as UserIcon, MapPin, ClipboardList, CheckCircle, Percent, Gift, ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react';
+import { X, User as UserIcon, MapPin, ClipboardList, CheckCircle, Percent, Gift, ArrowLeft, ArrowRight, ShieldCheck, Copy, Check, ExternalLink, QrCode, Smartphone, BellRing } from 'lucide-react';
 import { Order, OrderItem, User, Coupon } from '../types';
 import { 
   dbGetCoupons, 
@@ -34,6 +34,10 @@ export default function CheckoutModal({
   const [step, setStep] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // UPI states
+  const [copiedUpi, setCopiedUpi] = useState<boolean>(false);
+  const [paymentType, setPaymentType] = useState<'qr' | 'upi'>('qr');
 
   // Form states
   const [custName, setCustName] = useState('');
@@ -187,7 +191,7 @@ export default function CheckoutModal({
           state,
           pinCode: pinCode.replace(/\D/g, '')
         },
-        paymentStatus: 'Paid'
+        paymentStatus: 'Pending'
       };
 
       // 1. Save Order (updates order, stock, and coupon usage atomically)
@@ -487,8 +491,8 @@ export default function CheckoutModal({
           {step === 5 && (
             <div className="space-y-5">
               <div className="text-center">
-                <h3 className="font-serif text-base font-bold text-gray-800">Step 5: Luxury Order Summary</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Please review the final invoice before confirming order placement.</p>
+                <h3 className="font-serif text-base font-bold text-gray-800">Step 5: Luxury Order Summary & Payment</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Select a payment mode below to complete your secure transaction.</p>
               </div>
 
               {/* Invoice Table */}
@@ -530,15 +534,126 @@ export default function CheckoutModal({
                 </div>
               </div>
 
+              {/* Payment Method Selector Tabs */}
+              <div className="grid grid-cols-2 gap-3" id="payment-mode-tabs">
+                <button
+                  type="button"
+                  onClick={() => setPaymentType('qr')}
+                  className={`py-3 px-4 rounded-xl border text-xs font-bold uppercase tracking-wider flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
+                    paymentType === 'qr'
+                      ? 'border-emerald-luxury bg-emerald-luxury/5 text-emerald-luxury ring-1 ring-emerald-luxury font-bold'
+                      : 'border-gray-200 bg-white text-gray-500 hover:text-gray-800 hover:border-gray-300'
+                  }`}
+                  id="tab-payment-qr"
+                >
+                  <QrCode className="w-5 h-5 text-indigo-600" />
+                  <span>Payment QR Code</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentType('upi')}
+                  className={`py-3 px-4 rounded-xl border text-xs font-bold uppercase tracking-wider flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
+                    paymentType === 'upi'
+                      ? 'border-emerald-luxury bg-emerald-luxury/5 text-emerald-luxury ring-1 ring-emerald-luxury font-bold'
+                      : 'border-gray-200 bg-white text-gray-500 hover:text-gray-800 hover:border-gray-300'
+                  }`}
+                  id="tab-payment-upi"
+                >
+                  <Smartphone className="w-5 h-5 text-indigo-600" />
+                  <span>UPI ID / App</span>
+                </button>
+              </div>
+
+              {/* UPI & QR Code Payment Portal Section */}
+              <div className="bg-gradient-to-br from-indigo-900/5 via-purple-900/5 to-indigo-950/5 border border-indigo-200 rounded-2xl p-5 space-y-4">
+                {paymentType === 'qr' ? (
+                  <div className="flex flex-col items-center space-y-4 text-center">
+                    <div className="space-y-1">
+                      <h4 className="font-sans text-xs font-bold uppercase tracking-wider text-indigo-950">Scan QR to Redirect & Pay</h4>
+                      <p className="text-[11px] text-gray-500">Scan using GPay, PhonePe, Paytm, or tap the QR to auto-launch UPI apps.</p>
+                    </div>
+
+                    {/* Dynamic QR Code Frame */}
+                    <a
+                      href={`upi://pay?pa=8197980187@ybl&pn=Rekha%20Garments&am=${grandTotal}&tn=RekhaGarmentsOrder&cu=INR`}
+                      className="relative bg-white p-3.5 rounded-xl border border-indigo-100 shadow-md max-w-[190px] w-full flex flex-col items-center hover:scale-[1.02] active:scale-[0.98] transition-transform cursor-pointer"
+                      title="Tap to pay via any UPI app"
+                      id="upi-payment-qr-link"
+                    >
+                      <img 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`upi://pay?pa=8197980187@ybl&pn=Rekha Garments&am=${grandTotal}&tn=RekhaGarmentsOrder&cu=INR`)}`} 
+                        alt="Payment QR Code" 
+                        className="w-full h-auto aspect-square object-contain"
+                        id="upi-payment-qr"
+                      />
+                      <div className="mt-2.5 flex items-center gap-1">
+                        <Smartphone className="w-3 h-3 text-indigo-600 animate-pulse" />
+                        <span className="text-[9px] font-sans text-indigo-600 font-bold uppercase tracking-wider block">Tap to Open UPI App</span>
+                      </div>
+                    </a>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center space-y-4 text-center">
+                    <div className="space-y-1">
+                      <h4 className="font-sans text-xs font-bold uppercase tracking-wider text-indigo-950">Pay using UPI ID</h4>
+                      <p className="text-[11px] text-gray-500">Copy our beneficiary UPI ID below or launch any available payment app directly.</p>
+                    </div>
+
+                    <div className="bg-white rounded-xl border border-indigo-100 p-4 max-w-sm w-full space-y-3.5">
+                      <div>
+                        <p className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">Beneficiary Name</p>
+                        <p className="text-xs font-bold text-gray-800">Rekha Garments</p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] uppercase text-gray-400 font-bold tracking-wider">UPI ID</p>
+                        <div className="flex items-center justify-center gap-2 mt-1 bg-ivory py-1.5 px-3 rounded-lg border">
+                          <span className="font-mono text-xs font-bold text-indigo-700">8197980187@ybl</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText('8197980187@ybl');
+                              setCopiedUpi(true);
+                              setTimeout(() => setCopiedUpi(false), 2000);
+                            }}
+                            className="p-1 rounded hover:bg-gray-200 text-gray-500 hover:text-gray-700 cursor-pointer transition-colors"
+                            title="Copy UPI ID"
+                          >
+                            {copiedUpi ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                        {copiedUpi && <span className="text-[9px] text-green-600 font-bold block mt-1">✓ Copied to clipboard!</span>}
+                      </div>
+                    </div>
+
+                    <div className="pt-1.5 w-full max-w-xs">
+                      <a 
+                        href={`upi://pay?pa=8197980187@ybl&pn=Rekha%20Garments&am=${grandTotal}&tn=RekhaGarmentsOrder&cu=INR`}
+                        className="inline-flex items-center justify-center gap-1.5 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-sans font-bold text-xs uppercase tracking-wider px-4 py-3 rounded-xl cursor-pointer transition-all hover:shadow-md hover:scale-[1.01]"
+                        id="direct-upi-pay-btn"
+                      >
+                        <Smartphone className="w-4 h-4 animate-bounce" />
+                        <span>Launch UPI App / Redirect</span>
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-[11px] text-amber-800 flex gap-2 items-start leading-relaxed">
+                  <span className="font-bold text-base select-none leading-none mt-0.5">💡</span>
+                  <div>
+                    <span className="font-bold">Device Redirect Instructions:</span> After tapping the button or scanning the QR, you will be redirected to available UPI apps on your device. Once successful, return here to complete checkout.
+                  </div>
+                </div>
+              </div>
+
               {/* Payment Info Callout */}
               <div className="bg-emerald-luxury/5 border border-emerald-luxury/10 rounded-xl p-4 flex gap-3 items-start text-xs text-emerald-luxury">
                 <ShieldCheck className="w-5 h-5 text-gold-champagne shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold">Supabase Secure Payment Gateway:</p>
-                  <p className="mt-0.5 text-gray-600">
-                    {isRealSupabaseConfigured 
-                      ? 'Checkout is live! Order records will sync to your PostgreSQL Supabase database instantly.' 
-                      : 'Simulated payment gateway active. Clicking confirm will save records to your sandboxed local storage adapter.'}
+                  <p className="font-bold">Payment Notification & Process:</p>
+                  <p className="mt-0.5 text-gray-600 leading-normal">
+                    Your order will be registered in a pending verification state. You will get the order confirmation after Rekha Garments verifies the payment receipt in their PhonePe statement.
                   </p>
                 </div>
               </div>
@@ -573,11 +688,11 @@ export default function CheckoutModal({
             <button
               onClick={handleSubmitOrder}
               disabled={loading}
-              className="bg-gold-champagne hover:bg-gold-light text-emerald-luxury font-sans font-bold text-xs uppercase tracking-widest py-3 px-6 rounded-lg flex items-center gap-1 cursor-pointer ml-auto shadow-md"
+              className="bg-gold-champagne hover:bg-gold-light text-emerald-luxury font-sans font-bold text-xs uppercase tracking-widest py-3 px-6 rounded-lg flex items-center gap-1.5 cursor-pointer ml-auto shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
               id="checkout-confirm-order-btn"
             >
-              <CheckCircle className="w-4 h-4" />
-              <span>{loading ? 'Processing Order...' : 'Confirm Payment'}</span>
+              <CheckCircle className="w-4 h-4 animate-bounce" />
+              <span>{loading ? 'Processing Order...' : 'Confirm & Notify Rekha Garments'}</span>
             </button>
           )}
         </div>

@@ -571,10 +571,18 @@ export async function dbUpdateOrderStatus(orderId: string, status: string, timel
       ];
     }
 
-    await db.update(orders).set({
+    const updatePayload: any = {
       status,
       timeline: finalTimeline
-    }).where(eq(orders.id, orderId));
+    };
+    
+    if (status === 'Processing') {
+      updatePayload.paymentStatus = 'Paid';
+    } else if (status === 'Cancelled') {
+      updatePayload.paymentStatus = 'Failed';
+    }
+
+    await db.update(orders).set(updatePayload).where(eq(orders.id, orderId));
 
     const ords = await dbGetOrders();
     const updated = ords.find(o => o.id === orderId);

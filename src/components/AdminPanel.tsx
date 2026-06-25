@@ -58,6 +58,52 @@ export default function AdminPanel({
   const [showNotifications, setShowNotifications] = useState(false);
   const [readNotifIds, setReadNotifIds] = useState<string[]>([]);
 
+  // Active Pending Order verification state
+  const [pendingOrderToVerify, setPendingOrderToVerify] = useState<Order | null>(null);
+  const [verifyingOrder, setVerifyingOrder] = useState<boolean>(false);
+
+  useEffect(() => {
+    const firstPending = orders.find(o => o.status === 'Pending');
+    if (firstPending) {
+      setPendingOrderToVerify(firstPending);
+    } else {
+      setPendingOrderToVerify(null);
+    }
+  }, [orders]);
+
+  const handleAdminVerifyPayment = async (orderId: string, isConfirmed: boolean) => {
+    setVerifyingOrder(true);
+    try {
+      const status = isConfirmed ? 'Processing' : 'Cancelled';
+      const timelineNote = isConfirmed 
+        ? 'Payment verified in bank statement. Order confirmed by Rekha Garments!' 
+        : 'Payment verification failed. Order cancelled by Rekha Garments.';
+      
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          status,
+          timeline: timelineNote
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update order status');
+      }
+
+      onRefreshAll(); // Refresh orders state globally
+      setPendingOrderToVerify(null);
+    } catch (err: any) {
+      console.error('Failed to verify payment:', err);
+      alert('Failed to complete action: ' + err.message);
+    } finally {
+      setVerifyingOrder(false);
+    }
+  };
+
   // Database Diagnostics States
   const [dbStatus, setDbStatus] = useState<{
     status: 'checking' | 'connected' | 'failed';
@@ -568,6 +614,93 @@ export default function AdminPanel({
           Made with ♥ by Karthik Jadhav in Bangalore
         </footer>
       </main>
+
+      {/* MERCHANT AUDIT & UPI VERIFICATION MODAL FOR ADMIN */}
+      {pendingOrderToVerify && (
+        <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in" id="admin-payment-verification-popup">
+          <div className="bg-slate-900 text-slate-100 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-gold-champagne/40 flex flex-col transform scale-100 transition-all duration-300">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-600 via-amber-600 to-red-700 p-4 flex items-center gap-3 border-b border-gold-champagne/20">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+              </span>
+              <ShieldCheck className="w-5 h-5 text-gold-champagne shrink-0" />
+              <h3 className="font-serif text-sm font-bold tracking-widest text-white uppercase">Merchant Audit Action</h3>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 md:p-6 space-y-4 text-left">
+              <div className="space-y-2">
+                <h4 className="text-sm font-bold text-amber-400 uppercase tracking-wider">🔔 Pending UPI Payment Confirmation</h4>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Customer <span className="text-white font-bold">{pendingOrderToVerify.customerName}</span> has placed an order and initiated a UPI payment. Please verify the transaction receipt:
+                </p>
+              </div>
+
+              {/* Transaction details card */}
+              <div className="bg-slate-950/80 rounded-xl p-4 border border-slate-800 space-y-2.5 font-mono text-xs text-slate-300">
+                <div className="flex justify-between border-b border-slate-800 pb-1.5">
+                  <span className="text-slate-500">Order ID:</span>
+                  <span className="text-white font-bold">{pendingOrderToVerify.id}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-800 pb-1.5">
+                  <span className="text-slate-500">Amount Due:</span>
+                  <span className="text-gold-champagne font-bold text-sm">₹{pendingOrderToVerify.total.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Payer Name:</span>
+                  <span className="text-slate-200">{pendingOrderToVerify.customerName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Contact:</span>
+                  <span className="text-slate-200">+91 {pendingOrderToVerify.customerMobile}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Destination ID:</span>
+                  <span className="text-indigo-400 font-bold">8197980187@ybl</span>
+                </div>
+              </div>
+
+              <div className="space-y-1 bg-red-950/40 border border-red-900/30 p-3.5 rounded-xl text-[11px] text-red-200 leading-normal">
+                <p className="font-bold">⚠️ Security Notice for Administrator:</p>
+                <p className="text-[10px] text-red-300/95">
+                  Please check your bank statements or PhonePe merchant account to verify if <b>₹{pendingOrderToVerify.total.toLocaleString('en-IN')}</b> was received from this customer. 
+                </p>
+                <p className="font-bold mt-1.5 text-slate-100">Has the payment been successfully verified and confirmed?</p>
+              </div>
+            </div>
+
+            {/* Footer buttons */}
+            <div className="bg-slate-950 px-5 py-4 border-t border-slate-800 flex flex-col sm:flex-row gap-2.5">
+              <button
+                type="button"
+                disabled={verifyingOrder}
+                onClick={() => handleAdminVerifyPayment(pendingOrderToVerify.id, false)}
+                className="flex-1 px-4 py-2.5 border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold uppercase tracking-widest cursor-pointer transition-all disabled:opacity-50"
+              >
+                No, Reject
+              </button>
+              <button
+                type="button"
+                disabled={verifyingOrder}
+                onClick={() => handleAdminVerifyPayment(pendingOrderToVerify.id, true)}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-xs font-bold uppercase tracking-widest cursor-pointer shadow-lg shadow-emerald-950/50 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                id="admin-confirm-yes-btn"
+              >
+                {verifyingOrder ? (
+                  <span>Processing...</span>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Yes, Confirm</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

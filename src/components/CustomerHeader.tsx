@@ -20,6 +20,8 @@ interface CustomerHeaderProps {
   onNavigateToAdmin: () => void;
   isAdmin: boolean;
   onToggleAdmin: () => void;
+  onNavigateToOrders: () => void;
+  currentRoute: 'shop' | 'admin' | 'orders';
 }
 
 export default function CustomerHeader({
@@ -35,6 +37,8 @@ export default function CustomerHeader({
   onNavigateToAdmin,
   isAdmin,
   onToggleAdmin,
+  onNavigateToOrders,
+  currentRoute,
 }: CustomerHeaderProps) {
   return (
     <header className="relative z-40 bg-emerald-luxury text-white shadow-md">
@@ -66,34 +70,51 @@ export default function CustomerHeader({
         {/* Center: Navigation (Desktop) */}
         <nav className="hidden md:flex items-center gap-8 text-sm uppercase tracking-widest font-medium">
           <button
-            onClick={() => setActiveCategory('all')}
+            onClick={() => {
+              setActiveCategory('all');
+            }}
             className={`cursor-pointer pb-1 border-b-2 transition-all ${
-              activeCategory === 'all'
-                ? 'border-gold-champagne text-gold-champagne'
+              currentRoute === 'shop' && activeCategory === 'all'
+                ? 'border-gold-champagne text-gold-champagne font-bold'
                 : 'border-transparent text-white/80 hover:text-white hover:border-white/50'
             }`}
           >
             All Boutique
           </button>
           <button
-            onClick={() => setActiveCategory('garments')}
+            onClick={() => {
+              setActiveCategory('garments');
+            }}
             className={`cursor-pointer pb-1 border-b-2 transition-all ${
-              activeCategory === 'garments'
-                ? 'border-gold-champagne text-gold-champagne'
+              currentRoute === 'shop' && activeCategory === 'garments'
+                ? 'border-gold-champagne text-gold-champagne font-bold'
                 : 'border-transparent text-white/80 hover:text-white hover:border-white/50'
             }`}
           >
             Women's Garments
           </button>
           <button
-            onClick={() => setActiveCategory('jewellery')}
+            onClick={() => {
+              setActiveCategory('jewellery');
+            }}
             className={`cursor-pointer pb-1 border-b-2 transition-all ${
-              activeCategory === 'jewellery'
-                ? 'border-gold-champagne text-gold-champagne'
+              currentRoute === 'shop' && activeCategory === 'jewellery'
+                ? 'border-gold-champagne text-gold-champagne font-bold'
                 : 'border-transparent text-white/80 hover:text-white hover:border-white/50'
             }`}
           >
             1-Gram Jewellery
+          </button>
+          <button
+            onClick={onNavigateToOrders}
+            className={`cursor-pointer pb-1 border-b-2 transition-all ${
+              currentRoute === 'orders'
+                ? 'border-gold-champagne text-gold-champagne font-bold'
+                : 'border-transparent text-white/80 hover:text-white hover:border-white/50'
+            }`}
+            id="nav-my-orders-btn"
+          >
+            My Orders
           </button>
         </nav>
 
@@ -171,30 +192,45 @@ export default function CustomerHeader({
       </div>
 
       {/* Category Navigation Bar (Mobile) */}
-      <div className="md:hidden flex justify-around items-center py-2.5 bg-emerald-light/30 border-t border-emerald-light/40 text-xs tracking-widest uppercase font-medium">
+      <div className="md:hidden flex justify-around items-center py-2.5 bg-emerald-light/30 border-t border-emerald-light/40 text-[10px] tracking-wider uppercase font-medium">
         <button
-          onClick={() => setActiveCategory('all')}
-          className={`cursor-pointer px-2 py-1 rounded transition-colors ${
-            activeCategory === 'all' ? 'text-gold-champagne font-bold bg-emerald-deep/40' : 'text-white/80'
+          onClick={() => {
+            setActiveCategory('all');
+          }}
+          className={`cursor-pointer px-1.5 py-1 rounded transition-colors ${
+            currentRoute === 'shop' && activeCategory === 'all' ? 'text-gold-champagne font-bold bg-emerald-deep/40' : 'text-white/80'
           }`}
         >
           All
         </button>
         <button
-          onClick={() => setActiveCategory('garments')}
-          className={`cursor-pointer px-2 py-1 rounded transition-colors ${
-            activeCategory === 'garments' ? 'text-gold-champagne font-bold bg-emerald-deep/40' : 'text-white/80'
+          onClick={() => {
+            setActiveCategory('garments');
+          }}
+          className={`cursor-pointer px-1.5 py-1 rounded transition-colors ${
+            currentRoute === 'shop' && activeCategory === 'garments' ? 'text-gold-champagne font-bold bg-emerald-deep/40' : 'text-white/80'
           }`}
         >
           Garments
         </button>
         <button
-          onClick={() => setActiveCategory('jewellery')}
-          className={`cursor-pointer px-2 py-1 rounded transition-colors ${
-            activeCategory === 'jewellery' ? 'text-gold-champagne font-bold bg-emerald-deep/40' : 'text-white/80'
+          onClick={() => {
+            setActiveCategory('jewellery');
+          }}
+          className={`cursor-pointer px-1.5 py-1 rounded transition-colors ${
+            currentRoute === 'shop' && activeCategory === 'jewellery' ? 'text-gold-champagne font-bold bg-emerald-deep/40' : 'text-white/80'
           }`}
         >
           Jewellery
+        </button>
+        <button
+          onClick={onNavigateToOrders}
+          className={`cursor-pointer px-1.5 py-1 rounded transition-colors ${
+            currentRoute === 'orders' ? 'text-gold-champagne font-bold bg-emerald-deep/40' : 'text-white/80'
+          }`}
+          id="mobile-nav-my-orders-btn"
+        >
+          My Orders
         </button>
       </div>
     </header>

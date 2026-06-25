@@ -6,7 +6,7 @@
 
 This contains everything you need to run your app locally.
 
-View your app in AI Studio: [https://ai.studio/apps/70f7cb01-17b4-40ce-99ce-b786f8be48f8](https://rekha-garments-654373593238.asia-southeast1.run.app) 
+View your app in AI Studio: https://ai.studio/apps/70f7cb01-17b4-40ce-99ce-b786f8be48f8
 
 ## Run Locally
 
