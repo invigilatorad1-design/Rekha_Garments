@@ -29,7 +29,7 @@ export default function CartDrawer({
   if (!isOpen) return null;
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const isFreeShipping = subtotal >= 3000 || subtotal === 0;
+  const isFreeShipping = subtotal > 500 || subtotal === 0;
   const shippingCost = isFreeShipping ? 0 : 100;
   const grandTotal = subtotal + shippingCost;
 
@@ -170,7 +170,7 @@ export default function CartDrawer({
                   <span>Delivery Charges</span>
                   <span className="font-mono font-medium text-gray-950">
                     {isFreeShipping ? (
-                      <span className="text-green-600 font-semibold uppercase tracking-wider text-[10px]">Free Shipping</span>
+                      <span className="text-green-600 font-semibold uppercase tracking-wider text-[10px]">Free Delivery</span>
                     ) : (
                       `₹${shippingCost}`
                     )}
@@ -179,7 +179,7 @@ export default function CartDrawer({
                 {/* Free Shipping Progress Indicator */}
                 {!isFreeShipping && (
                   <div className="bg-amber-50 text-amber-800 border border-amber-200/40 rounded-lg p-2 text-[10px] text-center font-sans">
-                    Add <span className="font-bold">₹{(3000 - subtotal).toLocaleString('en-IN')}</span> more to unlock <span className="font-bold uppercase">Free Delivery</span>!
+                    Add <span className="font-bold">₹{(500 - subtotal).toLocaleString('en-IN')}</span> more to unlock <span className="font-bold uppercase">Free Delivery</span>!
                   </div>
                 )}
                 <div className="border-t border-gray-200 pt-3 flex justify-between text-sm text-gray-950 font-bold">

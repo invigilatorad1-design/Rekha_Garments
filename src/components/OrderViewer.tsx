@@ -156,7 +156,7 @@ export default function OrderViewer({
             </div>
             <h3 className="font-serif text-2xl font-bold text-gray-900 mb-2">Secure Authentication Required</h3>
             <p className="text-sm text-gray-500 leading-relaxed mb-6">
-              To view, track, or print your beautiful sarees, lehengas, or antique gold temple jewellery order, please sign in using your mobile number.
+              To view or track your beautiful sarees, lehengas, or antique gold temple jewellery order, please sign in using your mobile number.
             </p>
             <button
               onClick={onOpenAuth}
@@ -468,15 +468,6 @@ export default function OrderViewer({
 
                                   {/* Customer Actions */}
                                   <div className="flex flex-col gap-2 pt-2">
-                                    <button
-                                      onClick={() => handlePrint(order)}
-                                      className="w-full bg-white hover:bg-ivory border border-emerald-luxury/30 text-emerald-luxury py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all cursor-pointer shadow-xs flex items-center justify-center gap-2 hover:scale-[1.01]"
-                                      id={`print-invoice-btn-${order.id}`}
-                                    >
-                                      <Printer className="w-4 h-4" />
-                                      Print Detailed Invoice
-                                    </button>
-                                    
                                     <a
                                       href={`https://wa.me/918197980187?text=${encodeURIComponent(`Hello Rekha Garments, I would like to enquire about my Order ID: ${order.id}. Could you please share the shipping status? Thanks!`)}`}
                                       target="_blank"

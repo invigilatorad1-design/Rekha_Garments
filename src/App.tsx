@@ -19,7 +19,8 @@ import {
   Star,
   Eye,
   AlertCircle,
-  MessageCircle
+  MessageCircle,
+  Share2
 } from 'lucide-react';
 
 import { 
@@ -71,6 +72,7 @@ export default function App() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedSize, setSelectedSize] = useState<string>('M');
+  const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
 
   // Interactive Alerts / Confirms
   const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'info' } | null>(null);
@@ -229,6 +231,60 @@ export default function App() {
       };
     }
   }, []);
+
+  // Auto-open product from URL query parameter
+  useEffect(() => {
+    if (products.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const productId = params.get('product');
+      if (productId) {
+        const prod = products.find(p => p.id === productId);
+        if (prod) {
+          setSelectedProduct(prod);
+        }
+      }
+    }
+  }, [products]);
+
+  const handleCloseProductModal = () => {
+    setSelectedProduct(null);
+    // Gracefully remove product query parameter without reloading page
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('product')) {
+      url.searchParams.delete('product');
+      window.history.replaceState({}, '', url.pathname + url.search);
+    }
+  };
+
+  const handleShareProduct = async (product: Product) => {
+    const shareUrl = `${window.location.origin}${window.location.pathname}?product=${product.id}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${product.name} | Rekha Garments`,
+          text: `Check out this exquisite ${product.name} at Rekha Garments!`,
+          url: shareUrl,
+        });
+        triggerToast('Shared successfully!');
+        return;
+      } catch (err: any) {
+        // Log and fail-safe fallback to clipboard copy
+        console.log('Web Share failed or cancelled, copying to clipboard instead:', err);
+      }
+    }
+
+    // Fallback: Copy to clipboard
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopiedShareId(product.id);
+      triggerToast('Product link copied to clipboard!');
+      setTimeout(() => setCopiedShareId(null), 2500);
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+      triggerToast('Could not copy link to clipboard.', 'info');
+    }
+  };
 
   // Sync state helpers
   const triggerToast = (text: string, type: 'success' | 'info' = 'success') => {
@@ -802,7 +858,7 @@ export default function App() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="relative bg-white w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl border border-ivory-dark flex flex-col md:flex-row max-h-[85vh]">
             <button 
-              onClick={() => setSelectedProduct(null)} 
+              onClick={handleCloseProductModal} 
               className="absolute top-4 right-4 bg-white/95 hover:bg-white text-gray-700 p-2 rounded-full cursor-pointer z-50 transition-all shadow-md border border-gray-200/60 hover:scale-105 active:scale-95"
               title="Close"
               id="close-product-modal-btn"
@@ -920,6 +976,14 @@ export default function App() {
                     title="Add to Wishlist"
                   >
                     <Heart className={`w-4.5 h-4.5 ${wishlist.includes(selectedProduct.id) ? 'fill-gold-rose text-gold-rose' : ''}`} />
+                  </button>
+                  <button
+                    onClick={() => handleShareProduct(selectedProduct)}
+                    className="p-3 border border-ivory-dark rounded-xl hover:bg-gray-50 text-gray-500 cursor-pointer transition-all flex items-center justify-center"
+                    title={copiedShareId === selectedProduct.id ? "Link Copied!" : "Share Product"}
+                    id={`share-btn-${selectedProduct.id}`}
+                  >
+                    <Share2 className={`w-4.5 h-4.5 transition-colors ${copiedShareId === selectedProduct.id ? 'text-green-600 animate-pulse' : ''}`} />
                   </button>
                 </div>
               </div>

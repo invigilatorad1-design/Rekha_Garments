@@ -96,7 +96,7 @@ export default function CheckoutModal({
 
   const taxableAmount = subtotal - discount;
   const tax = Math.round(taxableAmount * 0.05); // 5% GST
-  const isFreeShipping = taxableAmount >= 3000;
+  const isFreeShipping = taxableAmount > 500;
   const shipping = taxableAmount === 0 ? 0 : isFreeShipping ? 0 : 100;
   const grandTotal = taxableAmount + tax + shipping;
 
@@ -521,7 +521,7 @@ export default function CheckoutModal({
                   <span>Insured Shipping Fee</span>
                   <span className="font-mono font-semibold text-gray-950">
                     {shipping === 0 ? (
-                      <span className="text-green-600 font-bold uppercase tracking-wider text-[10px]">Free Shipping</span>
+                      <span className="text-green-600 font-bold uppercase tracking-wider text-[10px]">Free Delivery</span>
                     ) : (
                       `₹${shipping}`
                     )}
