@@ -383,6 +383,45 @@ export async function dbRegisterOrUpdateCustomer(id: string, fullName: string, m
   }
 }
 
+export async function dbRegisterOrUpdateGoogleCustomer(id: string, fullName: string, email: string): Promise<User> {
+  const now = new Date().toISOString();
+  try {
+    const existing = await db.select().from(customers).where(eq(customers.id, id));
+    if (existing.length > 0) {
+      await db.update(customers).set({
+        name: fullName,
+        lastLogin: now,
+        mobile: email
+      }).where(eq(customers.id, id));
+    } else {
+      await db.insert(customers).values({
+        id,
+        name: fullName,
+        mobile: email,
+        registrationDate: now,
+        lastLogin: now,
+        totalOrders: 0,
+        totalSpending: 0
+      });
+    }
+
+    const updated = await db.select().from(customers).where(eq(customers.id, id));
+    const u = updated[0];
+    return {
+      id: u.id,
+      name: u.name,
+      mobile: u.mobile,
+      registrationDate: u.registrationDate,
+      lastLogin: u.lastLogin,
+      totalOrders: u.totalOrders,
+      totalSpending: u.totalSpending
+    };
+  } catch (error) {
+    console.error('Failed to register/update Google customer:', error);
+    throw new Error('Failed to register/update Google customer', { cause: error });
+  }
+}
+
 // -----------------------------------------------------------------
 // ORDERS SERVICE
 // -----------------------------------------------------------------

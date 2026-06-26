@@ -44,6 +44,7 @@ import CartDrawer from './components/CartDrawer';
 import AuthModal from './components/AuthModal';
 import CheckoutModal from './components/CheckoutModal';
 import AdminPanel from './components/AdminPanel';
+import AdminLoginModal from './components/AdminLoginModal';
 import OrderViewer from './components/OrderViewer';
 import FloatingCartWishlist from './components/FloatingCartWishlist';
 
@@ -57,7 +58,10 @@ export default function App() {
 
   // Navigation & Core States
   const [currentRoute, setCurrentRoute] = useState<'shop' | 'admin' | 'orders'>('shop');
-  const [isAdmin, setIsAdmin] = useState(true); // Default enabled so they can access dashboard immediately
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    return !!localStorage.getItem('rekha_admin_token');
+  });
+  const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<'all' | 'garments' | 'jewellery'>('all');
 
   // Customer Persistent Session States
@@ -95,42 +99,49 @@ export default function App() {
   // Load and refresh initial datasets
   const loadAllData = async () => {
     try {
-      const [prods, ords, custs, coups] = await Promise.all([
+      // 1. Fetch public-facing boutique data (Products & Coupons)
+      const [prods, coups] = await Promise.all([
         dbGetProducts(),
-        dbGetOrders(),
-        dbGetCustomers(),
         dbGetCoupons()
       ]);
       setProducts(prods);
-      setOrders(ords);
-      setUsers(custs);
       setCoupons(coups);
 
-      // Construct dynamic system notifications based on latest orders & stocks
-      const customNotes: Notification[] = [];
-      ords.slice(0, 5).forEach(o => {
-        customNotes.push({
-          id: `notif_order_${o.id}`,
-          title: `New Checkout Order: ${o.id}`,
-          message: `${o.customerName} checked out ${o.items.reduce((sum, i) => sum + i.quantity, 0)} items for ₹${o.total.toLocaleString('en-IN')}.`,
-          type: 'order',
-          timestamp: o.orderDate,
-          read: false
-        });
-      });
+      // 2. Fetch admin-only database views ONLY if authenticated
+      if (isAdmin) {
+        const [ords, custs] = await Promise.all([
+          dbGetOrders(),
+          dbGetCustomers()
+        ]);
+        setOrders(ords);
+        setUsers(custs);
 
-      prods.filter(p => p.stock > 0 && p.stock <= 5).forEach(p => {
-        customNotes.push({
-          id: `notif_stock_${p.id}`,
-          title: `Low Stock Advisory: ${p.name}`,
-          message: `Only ${p.stock} units remaining in boutique inventory. Consider replenishing.`,
-          type: 'stock',
-          timestamp: p.createdTime,
-          read: false
+        // Construct dynamic system notifications based on latest orders & stocks
+        const customNotes: Notification[] = [];
+        ords.slice(0, 5).forEach(o => {
+          customNotes.push({
+            id: `notif_order_${o.id}`,
+            title: `New Checkout Order: ${o.id}`,
+            message: `${o.customerName} checked out ${o.items.reduce((sum, i) => sum + i.quantity, 0)} items for ₹${o.total.toLocaleString('en-IN')}.`,
+            type: 'order',
+            timestamp: o.orderDate,
+            read: false
+          });
         });
-      });
 
-      setNotifications(customNotes);
+        prods.filter(p => p.stock > 0 && p.stock <= 5).forEach(p => {
+          customNotes.push({
+            id: `notif_stock_${p.id}`,
+            title: `Low Stock Advisory: ${p.name}`,
+            message: `Only ${p.stock} units remaining in boutique inventory. Consider replenishing.`,
+            type: 'stock',
+            timestamp: p.createdTime,
+            read: false
+          });
+        });
+
+        setNotifications(customNotes);
+      }
     } catch (err: any) {
       console.error('Failed to sync boutique data:', err);
     }
@@ -138,18 +149,22 @@ export default function App() {
 
   useEffect(() => {
     loadAllData();
+  }, [isAdmin]);
 
+  useEffect(() => {
     // Subscribe to real-time table modifications
     const unsubProducts = subscribeToTable('products', () => {
       dbGetProducts().then(setProducts);
     });
 
     const unsubOrders = subscribeToTable('orders', () => {
-      dbGetOrders().then(ords => {
-        setOrders(ords);
-        // Customer total metrics are derived from orders, so refresh customers as well
-        dbGetCustomers().then(setUsers);
-      });
+      if (localStorage.getItem('rekha_admin_token')) {
+        dbGetOrders().then(ords => {
+          setOrders(ords);
+          // Customer total metrics are derived from orders, so refresh customers as well
+          dbGetCustomers().then(setUsers);
+        });
+      }
     });
 
     const unsubCoupons = subscribeToTable('coupons', () => {
@@ -231,6 +246,29 @@ export default function App() {
       };
     }
   }, []);
+
+  // Check if current logged-in Google user is an administrator
+  useEffect(() => {
+    if (currentUser && currentUser.mobile && currentUser.mobile.includes('@')) {
+      fetch('/api/auth/admin-check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentUser.mobile })
+      })
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error('Check request failed');
+      })
+      .then(data => {
+        if (data.isAdmin && data.token) {
+          setIsAdmin(true);
+          localStorage.setItem('rekha_admin_token', data.token);
+          triggerToast('Welcome back, Boutique Administrator!');
+        }
+      })
+      .catch(err => console.error('Admin email verification failed:', err));
+    }
+  }, [currentUser]);
 
   // Auto-open product from URL query parameter
   useEffect(() => {
@@ -499,8 +537,16 @@ export default function App() {
         onNavigateToAdmin={() => setCurrentRoute('admin')}
         isAdmin={isAdmin}
         onToggleAdmin={() => {
-          setIsAdmin(!isAdmin);
-          triggerToast(`System Admin Access is now ${!isAdmin ? 'Enabled (Check header button!)' : 'Disabled'}.`);
+          if (isAdmin) {
+            setIsAdmin(false);
+            localStorage.removeItem('rekha_admin_token');
+            triggerToast('Boutique Administration Access Revoked.');
+            if (currentRoute === 'admin') {
+              setCurrentRoute('shop');
+            }
+          } else {
+            setIsAdminLoginOpen(true);
+          }
         }}
         onNavigateToOrders={() => {
           setCurrentRoute('orders');
@@ -723,7 +769,7 @@ export default function App() {
                     product={prod}
                     isWishlisted={wishlist.includes(prod.id)}
                     onToggleWishlist={() => handleToggleWishlist(prod.id)}
-                    onAddToCart={() => handleAddToCart(prod)}
+                    onAddToCart={(size) => handleAddToCart(prod, size)}
                     onViewProduct={() => handleViewProduct(prod)}
                   />
                 ))}
@@ -1011,6 +1057,16 @@ export default function App() {
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         onAuthSuccess={handleAuthSuccess}
+      />
+
+      {/* ADMIN PASSCODE GATEWAY MODAL */}
+      <AdminLoginModal
+        isOpen={isAdminLoginOpen}
+        onClose={() => setIsAdminLoginOpen(false)}
+        onSuccess={() => {
+          setIsAdmin(true);
+          triggerToast('Welcome back, Boutique Administrator!');
+        }}
       />
 
       {/* 9. SECURE MULTI-STEP CHECKOUT MODAL */}

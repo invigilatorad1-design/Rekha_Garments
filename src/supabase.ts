@@ -121,10 +121,22 @@ export async function dbGetProducts(): Promise<Product[]> {
   return res.json();
 }
 
+
+function getAuthHeaders(existingHeaders: Record<string, string> = {}): Record<string, string> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('rekha_admin_token') : null;
+  if (token) {
+    return {
+      ...existingHeaders,
+      'Authorization': `Bearer ${token}`
+    };
+  }
+  return existingHeaders;
+}
+
 export async function dbAddProduct(p: Partial<Product>): Promise<Product> {
   const res = await fetch('/api/products', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(p)
   });
   if (!res.ok) {
@@ -137,7 +149,7 @@ export async function dbAddProduct(p: Partial<Product>): Promise<Product> {
 export async function dbUpdateProduct(id: string, updates: Partial<Product>): Promise<Product> {
   const res = await fetch(`/api/products/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(updates)
   });
   if (!res.ok) {
@@ -149,7 +161,8 @@ export async function dbUpdateProduct(id: string, updates: Partial<Product>): Pr
 
 export async function dbDeleteProduct(id: string): Promise<void> {
   const res = await fetch(`/api/products/${id}`, {
-    method: 'DELETE'
+    method: 'DELETE',
+    headers: getAuthHeaders()
   });
   if (!res.ok) {
     const err = await res.json();
@@ -161,7 +174,9 @@ export async function dbDeleteProduct(id: string): Promise<void> {
 // CUSTOMERS SERVICE
 // -----------------------------------------------------------------
 export async function dbGetCustomers(): Promise<User[]> {
-  const res = await fetch('/api/customers');
+  const res = await fetch('/api/customers', {
+    headers: getAuthHeaders()
+  });
   if (!res.ok) {
     const err = await res.json();
     throw new Error(err.error || 'Failed to fetch customers');
@@ -186,7 +201,9 @@ export async function dbRegisterOrUpdateCustomer(id: string, fullName: string, m
 // ORDERS SERVICE
 // -----------------------------------------------------------------
 export async function dbGetOrders(): Promise<Order[]> {
-  const res = await fetch('/api/orders');
+  const res = await fetch('/api/orders', {
+    headers: getAuthHeaders()
+  });
   if (!res.ok) {
     const err = await res.json();
     throw new Error(err.error || 'Failed to fetch orders');
@@ -210,7 +227,7 @@ export async function dbCreateOrder(o: Partial<Order>): Promise<Order> {
 export async function dbUpdateOrderStatus(orderId: string, status: string, timelineOrNote: any): Promise<Order> {
   const res = await fetch(`/api/orders/${orderId}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ status, timeline: timelineOrNote })
   });
   if (!res.ok) {
@@ -235,7 +252,7 @@ export async function dbGetCoupons(): Promise<Coupon[]> {
 export async function dbCreateCoupon(c: Partial<Coupon>): Promise<Coupon> {
   const res = await fetch('/api/coupons', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(c)
   });
   if (!res.ok) {
@@ -248,7 +265,7 @@ export async function dbCreateCoupon(c: Partial<Coupon>): Promise<Coupon> {
 export async function dbUpdateCoupon(id: string, updates: Partial<Coupon>): Promise<Coupon> {
   const res = await fetch(`/api/coupons/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(updates)
   });
   if (!res.ok) {
@@ -260,7 +277,8 @@ export async function dbUpdateCoupon(id: string, updates: Partial<Coupon>): Prom
 
 export async function dbDeleteCoupon(id: string): Promise<void> {
   const res = await fetch(`/api/coupons/${id}`, {
-    method: 'DELETE'
+    method: 'DELETE',
+    headers: getAuthHeaders()
   });
   if (!res.ok) {
     const err = await res.json();

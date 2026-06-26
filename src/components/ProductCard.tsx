@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Heart, ShoppingCart, Sparkles, AlertCircle } from 'lucide-react';
 import { Product } from '../types';
 
@@ -12,7 +12,7 @@ interface ProductCardProps {
   product: Product;
   isWishlisted: boolean;
   onToggleWishlist: () => void;
-  onAddToCart: () => void;
+  onAddToCart: (size?: string) => void;
   onViewProduct?: () => void;
 }
 
@@ -25,6 +25,9 @@ export default function ProductCard({
 }: ProductCardProps) {
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock > 0 && product.stock <= 5;
+  const [selectedSize, setSelectedSize] = useState<string>(() => {
+    return (product.sizes && product.sizes[0]) || 'Free Size';
+  });
 
   return (
     <div 
@@ -121,12 +124,29 @@ export default function ProductCard({
 
           {/* Size details */}
           {product.sizes && product.sizes.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-3">
-              {product.sizes.map((s) => (
-                <span key={s} className="border border-ivory-dark text-[9px] font-mono text-gray-500 px-1 rounded">
-                  {s}
-                </span>
-              ))}
+            <div className="space-y-1 mt-1 mb-3">
+              <p className="text-[9px] text-gray-400 uppercase tracking-widest font-semibold">Select Size:</p>
+              <div className="flex flex-wrap gap-1.5" id={`product-sizes-${product.id}`}>
+                {product.sizes.map((s) => {
+                  const isSelected = selectedSize === s;
+                  return (
+                    <button
+                      key={s}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedSize(s);
+                      }}
+                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-emerald-luxury bg-emerald-luxury text-gold-champagne ring-1 ring-gold-champagne/50 scale-105'
+                          : 'border-gray-200 bg-white text-gray-500 hover:border-gray-400 hover:text-gray-700'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -144,7 +164,7 @@ export default function ProductCard({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onAddToCart();
+              onAddToCart(selectedSize);
             }}
             disabled={isOutOfStock}
             className={`w-full font-sans font-semibold text-xs uppercase tracking-widest py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${

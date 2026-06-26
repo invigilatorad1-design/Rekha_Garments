@@ -158,12 +158,12 @@ export default function HeroCarousel({ onCategorySelect }: HeroCarouselProps) {
         <div className="max-w-7xl mx-auto px-8 flex justify-between items-center text-xs text-white/90 font-sans tracking-wide">
           <div className="flex items-center gap-2">
             <Gift className="w-4 h-4 text-gold-champagne" />
-            <span>Free Express Delivery Across Bangalore on Orders Above ₹3,000</span>
+            <span>Free Express Delivery Across Bangalore on Orders Above ₹500</span>
           </div>
           <div className="h-4 w-[1px] bg-gold-champagne/20"></div>
           <div className="flex items-center gap-2">
             <Percent className="w-4 h-4 text-gold-champagne" />
-            <span>Exclusive 1-Gram Antique Jewellery Certifications Included</span>
+            <span>Exclusive 1-Gram Antique Jewellery</span>
           </div>
           <div className="h-4 w-[1px] bg-gold-champagne/20"></div>
           <div className="flex items-center gap-2">

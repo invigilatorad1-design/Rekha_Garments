@@ -32,6 +32,66 @@ export default function InventoryManager({ products, onRefresh }: InventoryManag
   const [showModal, setShowModal] = useState<'add' | 'edit' | null>(null);
   const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const processFile = (file: File) => {
+    setUploadError(null);
+    
+    // Check if file is an image
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please upload an image file (PNG, JPG, WEBP, etc.)');
+      return;
+    }
+    
+    // Check file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5 MB
+    if (file.size > maxSize) {
+      setUploadError('The photo size exceeds 5MB. Please upload a smaller image.');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64Data = e.target?.result as string;
+      if (base64Data) {
+        setCurrentProduct(prev => ({
+          ...prev,
+          images: [base64Data]
+        }));
+      }
+    };
+    reader.onerror = () => {
+      setUploadError('Failed to read file. Please try again.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      processFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      processFile(e.target.files[0]);
+    }
+  };
 
   // Filter products list
   const filteredProducts = products.filter((p) => {
@@ -51,6 +111,8 @@ export default function InventoryManager({ products, onRefresh }: InventoryManag
   });
 
   const handleOpenAdd = () => {
+    setUploadError(null);
+    setDragActive(false);
     setCurrentProduct({
       id: 'prod_' + Math.floor(10000 + Math.random() * 90000).toString(),
       name: '',
@@ -72,6 +134,8 @@ export default function InventoryManager({ products, onRefresh }: InventoryManag
   };
 
   const handleOpenEdit = (prod: Product) => {
+    setUploadError(null);
+    setDragActive(false);
     setCurrentProduct({ ...prod });
     setShowModal('edit');
   };
@@ -558,27 +622,108 @@ export default function InventoryManager({ products, onRefresh }: InventoryManag
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-gray-500 font-semibold uppercase tracking-wider text-[9px]">Sub-Category</label>
+              <div className="space-y-1.5">
+                <label className="text-gray-500 font-semibold uppercase tracking-wider text-[9px]">Sub-Category</label>
+                <input
+                  type="text"
+                  required
+                  value={currentProduct.subCategory || ''}
+                  onChange={(e) => setCurrentProduct({ ...currentProduct, subCategory: e.target.value })}
+                  className="w-full px-3.5 py-2 border rounded-lg focus:outline-none focus:border-emerald-luxury bg-ivory text-gray-800 text-xs font-semibold"
+                  placeholder="e.g. Saree, Necklace, Choker, Bangles"
+                />
+              </div>
+
+              <div className="space-y-1.5" id="admin-product-image-container">
+                <label className="text-gray-500 font-semibold uppercase tracking-wider text-[9px] block">Product Image</label>
+                
+                {/* Drag and Drop Zone */}
+                <div 
+                  onDragEnter={handleDrag}
+                  onDragOver={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-xl p-5 transition-all duration-200 cursor-pointer text-center relative flex flex-col items-center justify-center min-h-[140px] ${
+                    dragActive 
+                      ? 'border-emerald-luxury bg-emerald-50/50 scale-[1.01]' 
+                      : currentProduct.images?.[0]
+                        ? 'border-emerald-luxury/30 bg-ivory'
+                        : 'border-gray-200 bg-white hover:border-emerald-luxury hover:bg-emerald-50/10'
+                  }`}
+                  id="image-drag-drop-zone"
+                >
                   <input
-                    type="text"
-                    required
-                    value={currentProduct.subCategory || ''}
-                    onChange={(e) => setCurrentProduct({ ...currentProduct, subCategory: e.target.value })}
-                    className="w-full px-3.5 py-2 border rounded-lg focus:outline-none focus:border-emerald-luxury bg-ivory text-gray-800 text-xs"
-                    placeholder="e.g. Saree, Necklace, Choker, Bangles"
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="admin-image-upload-input"
                   />
+
+                  {currentProduct.images?.[0] ? (
+                    <div className="flex items-center gap-4 w-full justify-center px-2">
+                      <div className="relative shrink-0">
+                        <img
+                          src={currentProduct.images[0]}
+                          alt="Product preview"
+                          className="w-16 h-16 object-cover rounded-lg border border-gray-200 shadow-sm"
+                          referrerPolicy="no-referrer"
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentProduct(prev => ({ ...prev, images: [] }));
+                          }}
+                          className="absolute -top-1.5 -right-1.5 bg-rose-600 hover:bg-rose-700 text-white p-0.5 rounded-full shadow-md transition-colors cursor-pointer"
+                          title="Remove Image"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div className="text-left space-y-1 max-w-[240px]">
+                        <p className="font-semibold text-emerald-luxury text-[11px]">Image Ready to Save</p>
+                        <p className="text-[10px] text-gray-500 leading-snug">Drag & drop another photo here, or click to replace it.</p>
+                        <p className="text-[10px] text-emerald-800 font-medium italic">Max size: 5MB</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 py-2">
+                      <div className="mx-auto w-9 h-9 rounded-full bg-emerald-50 text-emerald-800 flex items-center justify-center">
+                        <Upload className="w-4.5 h-4.5" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-700 text-xs">Drag and drop your product photo here</p>
+                        <p className="text-gray-400 text-[10px] mt-0.5">or <span className="text-emerald-luxury font-bold underline">browse files</span> from your computer</p>
+                      </div>
+                      <p className="text-[9px] text-gray-400 font-mono">Accepts JPG, PNG, WEBP • Max size: 5MB</p>
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-gray-500 font-semibold uppercase tracking-wider text-[9px]">Display Image URL</label>
-                  <input
-                    type="text"
-                    required
-                    value={currentProduct.images?.[0] || ''}
-                    onChange={(e) => setCurrentProduct({ ...currentProduct, images: [e.target.value] })}
-                    className="w-full px-3.5 py-2 border rounded-lg focus:outline-none focus:border-emerald-luxury bg-ivory text-gray-800 text-xs"
-                  />
+
+                {uploadError && (
+                  <p className="text-[10px] text-rose-600 font-semibold flex items-center gap-1.5 mt-1" id="upload-error-msg">
+                    <AlertCircle className="w-3 h-3" />
+                    <span>{uploadError}</span>
+                  </p>
+                )}
+
+                {/* Optional Fallback Text Input */}
+                <div className="pt-1.5">
+                  <details className="cursor-pointer text-[10px] text-gray-400 select-none">
+                    <summary className="hover:text-emerald-luxury font-medium">Or paste image URL instead (Advanced)</summary>
+                    <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="text"
+                        value={currentProduct.images?.[0] || ''}
+                        onChange={(e) => setCurrentProduct({ ...currentProduct, images: e.target.value ? [e.target.value] : [] })}
+                        className="w-full px-3 py-1.5 border rounded focus:outline-none focus:border-emerald-luxury bg-white text-gray-800 text-xs"
+                        placeholder="https://images.unsplash.com/... or paste image URL"
+                      />
+                    </div>
+                  </details>
                 </div>
               </div>
 

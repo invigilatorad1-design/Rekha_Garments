@@ -47,11 +47,16 @@ export default function CustomerHeader({
         <span>✨ FESTIVAL SPECIAL: FLAT 15% OFF ON JEWELLERY (CODE: REKHA15) ✨</span>
         <button 
           onClick={onToggleAdmin}
-          className="hover:text-white transition-colors flex items-center gap-1.5 font-sans cursor-pointer text-[10px] md:text-xs bg-emerald-light/50 px-2 py-0.5 rounded border border-gold-champagne/30"
+          className={`hover:text-white transition-all flex items-center gap-1.5 font-sans cursor-pointer text-[10px] md:text-xs px-2.5 py-0.5 rounded border ${
+            isAdmin 
+              ? 'bg-rose-950/40 text-rose-200 border-rose-500/30 hover:bg-rose-900/50' 
+              : 'bg-emerald-light/50 text-gold-champagne border-gold-champagne/30 hover:bg-emerald-light/70'
+          }`}
           id="toggle-admin-role-btn"
+          title={isAdmin ? "Revoke admin permission and exit" : "Unlock administrator access"}
         >
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>System Admin Mode</span>
+          <ShieldCheck className={`w-3.5 h-3.5 ${isAdmin ? 'text-rose-400' : 'text-gold-champagne'}`} />
+          <span>{isAdmin ? 'Exit Admin Mode' : 'Admin Portal'}</span>
         </button>
       </div>
 

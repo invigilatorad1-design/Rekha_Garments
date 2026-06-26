@@ -71,6 +71,14 @@ export default function AdminPanel({
     }
   }, [orders]);
 
+  // Dispatch secure alert notification upon Admin Portal access
+  useEffect(() => {
+    fetch('/api/admin/notify-access', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    }).catch(err => console.error('Admin access notification failed:', err));
+  }, []);
+
   const handleAdminVerifyPayment = async (orderId: string, isConfirmed: boolean) => {
     setVerifyingOrder(true);
     try {
