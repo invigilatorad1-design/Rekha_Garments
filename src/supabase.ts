@@ -184,6 +184,16 @@ export async function dbGetCustomers(): Promise<User[]> {
   return res.json();
 }
 
+export async function dbGetCustomerByMobile(mobileNumber: string): Promise<User | null> {
+  const cleanMobile = mobileNumber.replace(/\D/g, '');
+  const res = await fetch(`/api/customers/by-mobile/${cleanMobile}`);
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Failed to fetch customer by mobile');
+  }
+  return res.json();
+}
+
 export async function dbRegisterOrUpdateCustomer(id: string, fullName: string, mobileNumber: string): Promise<User> {
   const res = await fetch('/api/customers', {
     method: 'POST',

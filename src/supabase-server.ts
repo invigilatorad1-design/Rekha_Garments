@@ -343,6 +343,32 @@ export async function dbGetCustomers(): Promise<User[]> {
   }
 }
 
+export async function dbGetCustomerByMobile(mobileNumber: string): Promise<User | null> {
+  const cleanMobile = mobileNumber.replace(/\D/g, '');
+  try {
+    const custs = await db.select().from(customers).where(eq(customers.mobile, cleanMobile));
+    if (custs.length === 0) return null;
+    
+    // Fetch orders to calculate totals
+    const ords = await db.select().from(orders).where(eq(orders.customerId, custs[0].id));
+    const activeOrders = ords.filter(o => o.status !== 'Cancelled');
+    const totalSpending = activeOrders.reduce((sum, o) => sum + o.total, 0);
+
+    return {
+      id: custs[0].id,
+      name: custs[0].name,
+      mobile: custs[0].mobile,
+      registrationDate: custs[0].registrationDate,
+      lastLogin: custs[0].lastLogin,
+      totalOrders: activeOrders.length,
+      totalSpending: totalSpending
+    };
+  } catch (error) {
+    console.error('Failed to get customer by mobile:', error);
+    throw new Error('Failed to fetch customer by mobile', { cause: error });
+  }
+}
+
 export async function dbRegisterOrUpdateCustomer(id: string, fullName: string, mobileNumber: string): Promise<User> {
   const now = new Date().toISOString();
   const cleanMobile = mobileNumber.replace(/\D/g, '');

@@ -11,7 +11,7 @@ import {
   dbSignInWithOtp, 
   dbVerifyOtp, 
   dbRegisterOrUpdateCustomer, 
-  dbGetCustomers, 
+  dbGetCustomerByMobile, 
   isRealSupabaseConfigured 
 } from '../supabase';
 
@@ -132,8 +132,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
       const { user } = await dbVerifyOtp(cleanMobile, otp);
 
       // Verify if customer exists
-      const customers = await dbGetCustomers();
-      const existingUser = customers.find(c => c.id === user.id || c.mobile === cleanMobile);
+      const existingUser = await dbGetCustomerByMobile(cleanMobile);
 
       if (existingUser) {
         // Update login timestamp

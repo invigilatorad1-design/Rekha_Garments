@@ -17,6 +17,7 @@ import {
   dbUpdateProduct,
   dbDeleteProduct,
   dbGetCustomers,
+  dbGetCustomerByMobile,
   dbRegisterOrUpdateCustomer,
   dbGetOrders,
   dbCreateOrder,
@@ -162,6 +163,16 @@ async function startServer() {
   app.get("/api/customers", requireAdmin, async (req, res) => {
     try {
       const data = await dbGetCustomers();
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get("/api/customers/by-mobile/:mobile", async (req, res) => {
+    try {
+      const { mobile } = req.params;
+      const data = await dbGetCustomerByMobile(mobile);
       res.json(data);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
