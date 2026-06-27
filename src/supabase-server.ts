@@ -491,6 +491,20 @@ export async function dbGetOrders(): Promise<Order[]> {
   }
 }
 
+export async function dbGetCustomerOrders(customerId: string, mobileNumber: string): Promise<Order[]> {
+  try {
+    const cleanMobile = mobileNumber.replace(/\D/g, '');
+    const ords = await dbGetOrders();
+    return ords.filter(o => {
+      const cleanOrderMobile = o.customerMobile.replace(/\D/g, '');
+      return o.customerId === customerId || (cleanMobile && cleanMobile === cleanOrderMobile);
+    });
+  } catch (error) {
+    console.error('Failed to get customer orders:', error);
+    throw new Error('Failed to fetch customer orders', { cause: error });
+  }
+}
+
 export async function dbCreateOrder(o: Partial<Order>): Promise<Order> {
   const uniqueId = 'RKG_' + Math.floor(10000 + Math.random() * 90000).toString();
   

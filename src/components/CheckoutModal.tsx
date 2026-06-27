@@ -95,7 +95,7 @@ export default function CheckoutModal({
   }
 
   const taxableAmount = subtotal - discount;
-  const tax = Math.round(taxableAmount * 0.05); // 5% GST
+  const tax = 0; // GST removed as requested
   const isFreeShipping = taxableAmount > 500;
   const shipping = taxableAmount === 0 ? 0 : isFreeShipping ? 0 : 100;
   const grandTotal = taxableAmount + tax + shipping;
@@ -511,11 +511,6 @@ export default function CheckoutModal({
                     <span className="font-mono font-semibold">-₹{discount.toLocaleString('en-IN')}</span>
                   </div>
                 )}
-
-                <div className="flex justify-between text-xs text-gray-600">
-                  <span>GST (5% Integrated Tax)</span>
-                  <span className="font-mono font-semibold text-gray-950">₹{tax.toLocaleString('en-IN')}</span>
-                </div>
 
                 <div className="flex justify-between text-xs text-gray-600">
                   <span>Insured Shipping Fee</span>

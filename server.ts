@@ -20,6 +20,7 @@ import {
   dbGetCustomerByMobile,
   dbRegisterOrUpdateCustomer,
   dbGetOrders,
+  dbGetCustomerOrders,
   dbCreateOrder,
   dbUpdateOrderStatus,
   dbGetCoupons,
@@ -71,14 +72,8 @@ async function startServer() {
 
   // Database Diagnostics Route
   app.get("/api/db-test", async (req, res) => {
-    if (process.env.NODE_ENV !== "development") {
-      return res.status(403).json({
-        success: false,
-        message: "Database diagnostics endpoint is unavailable in production.",
-      });
-    }
-
-    const config = {
+    const isProd = process.env.NODE_ENV === "production";
+    const config = isProd ? { NODE_ENV: "production" } : {
       SQL_HOST: process.env.SQL_HOST,
       SQL_USER: process.env.SQL_USER,
       SQL_DB_NAME: process.env.SQL_DB_NAME,
@@ -96,7 +91,7 @@ async function startServer() {
         success: true,
         message: "Database connected successfully!",
         config,
-        result: result.rows,
+        result: isProd ? undefined : result.rows,
       });
     } catch (err: any) {
       console.error("Database connection diagnostics failed:", err);
@@ -104,9 +99,7 @@ async function startServer() {
         success: false,
         message: "Database connection failed",
         config,
-        error: err.message || String(err),
-        stack: err.stack,
-        cause: err.cause ? (err.cause.message || String(err.cause)) : null,
+        error: isProd ? "Database connection error. Please contact administrator." : (err.message || String(err)),
       });
     }
   });
@@ -190,6 +183,19 @@ async function startServer() {
   });
 
   // Orders routes
+  app.get("/api/orders/customer", async (req, res) => {
+    try {
+      const { customerId, mobile } = req.query;
+      if (!customerId && !mobile) {
+        return res.status(400).json({ error: "Missing customerId or mobile query parameter" });
+      }
+      const data = await dbGetCustomerOrders(String(customerId || ''), String(mobile || ''));
+      res.json(data);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get("/api/orders", requireAdmin, async (req, res) => {
     try {
       const data = await dbGetOrders();

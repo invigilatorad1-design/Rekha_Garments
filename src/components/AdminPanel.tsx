@@ -87,11 +87,17 @@ export default function AdminPanel({
         ? 'Payment verified in bank statement. Order confirmed by Rekha Garments!' 
         : 'Payment verification failed. Order cancelled by Rekha Garments.';
       
+      const token = localStorage.getItem('rekha_admin_token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const res = await fetch(`/api/orders/${orderId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify({
           status,
           timeline: timelineNote

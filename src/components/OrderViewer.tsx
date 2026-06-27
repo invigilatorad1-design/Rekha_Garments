@@ -451,10 +451,7 @@ export default function OrderViewer({
                                           <span className="font-mono">-₹{order.discount.toLocaleString('en-IN')}</span>
                                         </div>
                                       )}
-                                      <div className="flex justify-between text-gray-500">
-                                        <span>GST Integrated (5%):</span>
-                                        <span className="font-mono">₹{order.tax.toLocaleString('en-IN')}</span>
-                                      </div>
+
                                       <div className="flex justify-between text-gray-500">
                                         <span>Packaging & Transit:</span>
                                         <span className="font-mono">₹{order.shipping.toLocaleString('en-IN')}</span>
@@ -570,10 +567,7 @@ export default function OrderViewer({
                 <span>-₹{printOrder.discount.toLocaleString('en-IN')}</span>
               </div>
             )}
-            <div className="flex justify-between text-gray-600">
-              <span>GST Integrated Tax (5%):</span>
-              <span>₹{printOrder.tax.toLocaleString('en-IN')}</span>
-            </div>
+
             <div className="flex justify-between text-gray-600">
               <span>Insured Courier & Packaging:</span>
               <span>₹{printOrder.shipping.toLocaleString('en-IN')}</span>

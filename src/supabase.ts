@@ -221,6 +221,19 @@ export async function dbGetOrders(): Promise<Order[]> {
   return res.json();
 }
 
+export async function dbGetCustomerOrders(customerId: string, mobileNumber: string): Promise<Order[]> {
+  const query = new URLSearchParams();
+  if (customerId) query.append('customerId', customerId);
+  if (mobileNumber) query.append('mobile', mobileNumber);
+  
+  const res = await fetch(`/api/orders/customer?${query.toString()}`);
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Failed to fetch customer orders');
+  }
+  return res.json();
+}
+
 export async function dbCreateOrder(o: Partial<Order>): Promise<Order> {
   const res = await fetch('/api/orders', {
     method: 'POST',

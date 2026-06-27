@@ -4,7 +4,7 @@
  * Connects the elite customer storefront and royal administrative panels in real-time.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Heart, 
   ShoppingCart, 
@@ -26,6 +26,7 @@ import {
 import { 
   dbGetProducts, 
   dbGetOrders, 
+  dbGetCustomerOrders,
   dbGetCustomers, 
   dbGetCoupons, 
   dbUpdateProduct, 
@@ -66,6 +67,10 @@ export default function App() {
 
   // Customer Persistent Session States
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const currentUserRef = useRef<User | null>(null);
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [cart, setCart] = useState<OrderItem[]>([]);
 
@@ -141,6 +146,16 @@ export default function App() {
         });
 
         setNotifications(customNotes);
+      } else {
+        const currentCust = currentUserRef.current || currentUser;
+        if (currentCust) {
+          try {
+            const customerOrds = await dbGetCustomerOrders(currentCust.id, currentCust.mobile);
+            setOrders(customerOrds);
+          } catch (err) {
+            console.error('Failed to load customer orders:', err);
+          }
+        }
       }
     } catch (err: any) {
       console.error('Failed to sync boutique data:', err);
@@ -149,7 +164,7 @@ export default function App() {
 
   useEffect(() => {
     loadAllData();
-  }, [isAdmin]);
+  }, [isAdmin, currentUser]);
 
   useEffect(() => {
     // Subscribe to real-time table modifications
@@ -164,6 +179,11 @@ export default function App() {
           // Customer total metrics are derived from orders, so refresh customers as well
           dbGetCustomers().then(setUsers);
         });
+      } else {
+        const currentCust = currentUserRef.current;
+        if (currentCust) {
+          dbGetCustomerOrders(currentCust.id, currentCust.mobile).then(setOrders);
+        }
       }
     });
 

@@ -291,10 +291,7 @@ export default function OrderManager({ orders, onRefresh }: OrderManagerProps) {
                     <span>-₹{selectedOrder.discount.toLocaleString('en-IN')}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-gray-500">
-                  <span>GST (5% Integrated Tax)</span>
-                  <span>₹{selectedOrder.tax.toLocaleString('en-IN')}</span>
-                </div>
+
                 <div className="flex justify-between text-gray-500">
                   <span>Express Transit Packaging</span>
                   <span>₹{selectedOrder.shipping.toLocaleString('en-IN')}</span>
@@ -485,10 +482,7 @@ export default function OrderManager({ orders, onRefresh }: OrderManagerProps) {
                 <span>-₹{selectedOrder.discount.toLocaleString('en-IN')}</span>
               </div>
             )}
-            <div className="flex justify-between text-gray-600">
-              <span>GST Integrated Tax (5%):</span>
-              <span>₹{selectedOrder.tax.toLocaleString('en-IN')}</span>
-            </div>
+
             <div className="flex justify-between text-gray-600">
               <span>Insured Courier & Packaging:</span>
               <span>₹{selectedOrder.shipping.toLocaleString('en-IN')}</span>
